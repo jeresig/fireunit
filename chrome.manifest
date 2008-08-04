@@ -1,0 +1,2 @@
+content fireunit chrome/content/fireunit/ xpcnativewrappers=no
+overlay chrome://firebug/content/firebugOverlay.xul         chrome://fireunit/content/fireunit.xul

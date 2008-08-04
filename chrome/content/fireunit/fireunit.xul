@@ -1,0 +1,20 @@
+<?xml version="1.0"?> 
+
+<overlay xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"> 
+    <script src="chrome://fireunit/content/fireunit.js" type="application/x-javascript"/> 
+
+    <commandset id="mainCommandSet"> 
+        <command id="cmd_hwReRunTests" oncommand="Firebug.FireUnitModel.onReRunTests(FirebugContext)"/>
+    </commandset> 
+    
+    <toolbar id="fbToolbar" align="center"> 
+        <hbox id="fbToolbarInner" insertbefore="fbDetachButton" flex="1" align="center"> 
+            <hbox id="fbFireUnitButtons">
+                <toolbarseparator/>
+                <toolbarbutton id="hwMyButton"
+                    label="Re-Run Tests" class="toolbar-text-button"
+                    tooltiptext="Run the tests again." command="cmd_hwReRunTests"/>
+            </hbox> 
+        </hbox> 
+    </toolbar> 
+</overlay>
