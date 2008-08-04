@@ -10,8 +10,7 @@ var panelName = "Test";
 /**
  * Model implementation.
  */
-Firebug.FireUnitModel = extend(Firebug.Module, 
-{ 
+Firebug.FireUnitModel = extend(Firebug.Module, { 
     showPanel: function(browser, panel) { 
       var isHwPanel = panel && panel.name == panelName; 
       var hwButtons = browser.chrome.$("fbFireUnitButtons"); 
@@ -27,8 +26,7 @@ Firebug.FireUnitModel = extend(Firebug.Module,
  * Panel implementation
  */
 function FireUnitPanel() {} 
-FireUnitPanel.prototype = extend(Firebug.Panel, 
-{ 
+FireUnitPanel.prototype = extend(Firebug.Panel, { 
     name: panelName, 
     title: "Test", 
 
@@ -36,16 +34,14 @@ FireUnitPanel.prototype = extend(Firebug.Panel,
       Firebug.Panel.initialize.apply(this, arguments);
     },
     
-    getOptionsMenuItems: function(context)
-    {
+    getOptionsMenuItems: function(context){
         return [
             this.optionMenu("Passing Tests", "fireunit.showPass"),
             this.optionMenu("Failing Tests", "fireunit.showFail")
         ];
     },
 
-    optionMenu: function(label, option)
-    {
+    optionMenu: function(label, option){
         var value = Firebug.getPref(Firebug.prefDomain, option);
         return { 
             label: label, 
