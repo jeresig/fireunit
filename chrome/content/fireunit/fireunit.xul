@@ -8,12 +8,12 @@
     </commandset> 
     
     <toolbar id="fbToolbar" align="center"> 
-        <hbox id="fbToolbarInner" insertbefore="fbDetachButton" flex="1" align="center"> 
-            <hbox id="fbFireUnitButtons">
-                <toolbarseparator/>
+        <hbox id="fbToolbarInner" flex="1" align="center"> 
+            <hbox id="fbFireUnitButtons" insertbefore="fbSearchBox">
                 <toolbarbutton id="hwMyButton"
                     label="Re-Run Tests" class="toolbar-text-button"
                     tooltiptext="Run the tests again." command="cmd_hwReRunTests"/>
+                <toolbarseparator/>
             </hbox> 
         </hbox> 
     </toolbar> 
