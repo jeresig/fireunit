@@ -8,17 +8,31 @@ FBL.ns(function() { with (FBL) {
 var panelName = "Test";
 
 /**
- * Model implementation.
+ * Module implementation.
  */
-Firebug.FireUnitModel = extend(Firebug.Module, { 
+Firebug.FireUnitModule = extend(Firebug.Module, { 
     showPanel: function(browser, panel) { 
       var isHwPanel = panel && panel.name == panelName; 
       var hwButtons = browser.chrome.$("fbFireUnitButtons"); 
       collapse(hwButtons, !isHwPanel); 
     },
-
-    onMyButton: function(context) {
-      alert("Hello World!");
+    
+    watchWindow: function(context, win){
+        if (win.wrappedJSObject && win.wrappedJSObject.fireunit)
+            return;
+        
+        win.wrappedJSObject.fireunit = {
+            ok: function( pass, msg ){
+                var panel = context.getPanel(panelName).panelNode;
+                panel.innerHTML += "<li><span style='color:" +
+                    (pass ? "green" : "red") + ";'>" +
+                    (pass ? "PASS" : "FAIL") + "</span> " + msg + "</li>";
+            }
+        };
+    },
+    
+    unWatchWindow: function(){
+        delete win.wrappedJSObject.fireunit;
     }
 }); 
 
@@ -32,18 +46,6 @@ FireUnitPanel.prototype = extend(Firebug.Panel, {
 
     initialize: function() {
         Firebug.Panel.initialize.apply(this, arguments);
-    },
-    
-    watchWindow: function(win){
-        win.fireunit = {
-            ok: function(pass, msg){
-                win.alert( msg );
-            }
-        };
-    },
-    
-    unWatchWindow: function(){
-    
     },
     
     getOptionsMenuItems: function(context){
@@ -69,6 +71,6 @@ FireUnitPanel.prototype = extend(Firebug.Panel, {
  * Registration
  */
 Firebug.registerPanel(FireUnitPanel); 
-Firebug.registerModule(Firebug.FireUnitModel); 
+Firebug.registerModule(Firebug.FireUnitModule); 
 
 }});
