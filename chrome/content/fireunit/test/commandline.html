@@ -1,0 +1,82 @@
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"></head><body><h2>FireBug console commandline testcase #1</h2>
+
+<p>This test is for exercising code evaluated from the Firebug commandline, when
+the debugger is NOT involved.</p>
+
+<span id="hello" style="display: none;">Hello!</span>
+
+<script>
+var a = "three";
+var b = undefined;
+var c = null;
+var d = 2;
+function set_d_val() {
+    var span = document.getElementById("d_val");
+    span.textContent = d;
+}
+</script>
+<h2>Setup:</h2>
+
+<ol>
+  <li> Load this page.
+  </li><li> Open Firebug.
+  </li><li> Click on the Console tab in Firebug.
+</li></ol>
+
+<h2>Tests:</h2>
+Evaluate these statements from the Firebug command line (the "&gt;&gt;&gt;" at the
+bottom of the Console tab's panel).
+<ol>
+<li>Enter: <tt>window</tt><br>
+    Expected output: <tt>Window test.html</tt></li>
+
+<li>Enter: <tt>document</tt><br>
+    Expected output: <tt>Document test.html</tt></li>
+
+<li>Enter: <tt>a</tt><br>
+    Expected output: <tt>"three"</tt></li>
+<li>Enter: <tt>b</tt><br>
+    Expected output: <tt>(XXX get nothing, should say "undefined". Not a FF bug, FB just doesn't handle this right?)</tt></li>
+<li>Enter: <tt>c</tt><br>
+    Expected output: <tt>null</tt> (against a gray background)</li>
+<li>Current value of 'd': <span id="d_val">__</span> <button onclick="set_d_val();">Update D</button>
+    <ol>
+    <li>Enter: <tt>d</tt><br>
+    Expected output: <tt>2</tt></li>
+    <li>Click the "Update D" button here in the page<br>
+    You should see: <tt>Current value of 'd': 2</tt></li>
+    <li>Enter: <tt>d = 999</tt><br>
+    Expected output: <tt>999</tt></li>
+    <li>Enter: <tt>d</tt><br>
+    Expected output: <tt>999</tt></li>
+    <li>Click the "Update D" button here in the page<br>
+    You should see: <tt>Current value of 'd': 999</tt>(XXX I get "2". the global object in the sandbox is the sandbox, not the window?)</li>
+    </ol></li>
+
+<li>
+    <ol>
+    <li>Enter: <tt>blah</tt><br>
+        Expected output: <tt>commandLine.evaluate FAILED: ReferenceError: blah is not defined</tt></li>
+    <li>Enter: <tt>var blah = "oink"</tt><br>
+        Expected output: (nothing)</li>
+    <li>Enter: <tt>blah</tt><br>
+        Expected output: <tt>"oink"</tt></li>
+    </ol></li>
+
+<li>Enter: <tt>alert("ok")</tt><br>
+    Expected output: a popup alert.</li>
+
+<li>Enter: <tt>document.getElementById('hello')</tt><br>
+    Expected output: <tt>&lt;span id="hello" style="display: none;"&gt;</tt><br>
+    (clicking the output should take you to the HTML tab, with the span selected.)</li>
+
+<li>Enter: <tt>setTimeout(function(){ alert("test"); }, 2000);</tt><br>
+    Expected output: a number will immediately be shown in the console (the timer id),
+    and after 2 seconds an alert will be shown.</li>
+
+<li>Enter: <tt>var xhr = new XMLHttpRequest();</tt><br>
+    Expected output: <tt>(XXX: commandLine.evaluate FAILED: [Exception...  "Not enough arguments" nsresult: "0x80570001 (NS_ERROR_XPC_NOT_ENOUGH_ARGS))</tt></li>
+
+</ol>
+</body></html>
