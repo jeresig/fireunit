@@ -11,26 +11,139 @@
 <script>
 var state = false;
 
-// 
-fireunit.click( "fbStatusBar" );
-fireunit.focus( "fbCommandLine" );
+var a = "three";
+var b = undefined;
+var c = null;
+var d = 2;
 
+function set_d_val(td) {
+    d = td;
+    return d;
+}
+
+function checkText( str, msg ) {
+	var divs = fireunit.panel("console").getElementsByTagName("div");
+	var result = divs[ divs.length - 1 ].innerHTML;
+	fireunit.reCompare( str, result, msg );
+}
+
+function clear(){
+	fireunit.click( fireunit.id( "fbConsoleButtons" ).getElementsByTagName("toolbarbutton")[0] );
+}
+
+window.onload = function(){
+ 
+	fireunit.click( "fbStatusBar" );
+	fireunit.focus( "fbCommandLine" );
+
+	setTimeout(function(){
+		// Verify basic command execution
+		state = false;
+		fireunit.value( "fbCommandLine", "state = true;" );
+		fireunit.key( "fbCommandLine", 13 );
+		fireunit.ok( state, "Console command executed." );
+		checkText( '<span class="objectBox objectBox-number">true</span>', "Command value verified" );
+
+		clear();
+		fireunit.ok( fireunit.panel("console").getElementsByTagName("div").length == 0, "Verify console clear" );
+		
+		// Check output
+		fireunit.value( "fbCommandLine", "window" );
+		fireunit.key( "fbCommandLine", 13 );
+		checkText( '<a class="objectLink objectLink-object">Window <span class="objectPropValue">commandline.html</span></a>', "Window value verified" );
+
+		fireunit.value( "fbCommandLine", "document" );
+		fireunit.key( "fbCommandLine", 13 );
+		checkText( "<a class=\"objectLink objectLink-object\">Document <span class=\"objectPropValue\">commandline.html</span></a>", "Document value verified." );
+
+		fireunit.value( "fbCommandLine", "a" );
+		fireunit.key( "fbCommandLine", 13 );
+		checkText( "<span class=\"objectBox objectBox-string\">\"three\"</span>", "string value verified." );
+
+		fireunit.value( "fbCommandLine", "b" );
+		fireunit.key( "fbCommandLine", 13 );
+		checkText( '<span class="objectBox objectBox-text">&gt;&gt;&gt; b</span>', "undefined value verified." );
+
+		fireunit.value( "fbCommandLine", "c" );
+		fireunit.key( "fbCommandLine", 13 );
+		checkText( '<span class="objectBox objectBox-null">null</span>', "null value verified." );
+
+		fireunit.value( "fbCommandLine", "d" );
+		fireunit.key( "fbCommandLine", 13 );
+		checkText( '<span class="objectBox objectBox-number">2</span>', "number value verified." );
+
+		fireunit.value( "fbCommandLine", "d = 999;" );
+		fireunit.key( "fbCommandLine", 13 );
+		checkText( '<span class="objectBox objectBox-number">999</span>', "Assignment return value verified." );
+		fireunit.ok( d == 999, "number set verified." );
+
+		fireunit.value( "fbCommandLine", "d" );
+		fireunit.key( "fbCommandLine", 13 );
+		checkText( '<span class="objectBox objectBox-number">999</span>', "number value verified." );
+
+		fireunit.value( "fbCommandLine", "set_d_val" );
+		fireunit.key( "fbCommandLine", 13 );
+		checkText( '<a class="objectLink objectLink-function">set_d_val(td)</a>', "function value verified." );
+
+		fireunit.value( "fbCommandLine", "set_d_val(998);" );
+		fireunit.key( "fbCommandLine", 13 );
+		checkText( '<span class="objectBox objectBox-number">998</span>', "function return value verified." );
+		fireunit.ok( d == 998, "Verify the number change." );
+
+		clear();
+
+		// Errors
+		fireunit.value( "fbCommandLine", "blah" );
+		fireunit.key( "fbCommandLine", 13 );
+		checkText( ' <a class="objectLink objectLink-object"><span class="objectTitle">ReferenceError: blah is not defined</span> source=<span class="objectPropValue">blah</span></a><a class="objectLink objectLink-sourceLink">commandline.html (line \\d+)</a>', "Error verified." );
+
+		clear();
+
+		// Assignment
+		fireunit.value( "fbCommandLine", "var blah = 'oink';" );
+		fireunit.key( "fbCommandLine", 13 );
+		checkText( '<span class="objectBox objectBox-text">&gt;&gt;&gt; var blah = \'oink\';</span>', "Variable assignment verified." );
+
+		fireunit.value( "fbCommandLine", "blah" );
+		fireunit.key( "fbCommandLine", 13 );
+		checkText( "<span class=\"objectBox objectBox-string\">\"oink\"</span>", "string value verified." );
+
+		clear();
+
+		// DOM Elements
+		fireunit.value( "fbCommandLine", "document.getElementsByTagName('div')[0]" );
+		fireunit.key( "fbCommandLine", 13 );
+		checkText( '<a class="objectLink objectLink-element">&lt;<span class="nodeTag">div</span>&gt;</a>', "DOM Element verified." );
+
+		fireunit.value( "fbCommandLine", "document.getElementsByTagName('div')[1]" );
+		fireunit.key( "fbCommandLine", 13 );
+		checkText( '<a class="objectLink objectLink-element">&lt;<span class="nodeTag">div</span>&nbsp;id="<span class="nodeValue">first</span>"&nbsp;classname="<span class="nodeValue">test</span>"&nbsp;style="<span class="nodeValue">color: red;</span>"&gt;</a>', "DOM Element verified." );
+
+		fireunit.value( "fbCommandLine", "document.getElementsByTagName('div')[1]" );
+		fireunit.key( "fbCommandLine", 13 );
+		checkText( '<a class="objectLink objectLink-element">&lt;<span class="nodeTag">div</span>&nbsp;id="<span class="nodeValue">first</span>"&nbsp;classname="<span class="nodeValue">test</span>"&nbsp;style="<span class="nodeValue">color: red;</span>"&gt;</a>', "DOM Element verified." );
+
+		fireunit.value( "fbCommandLine", "document.getElementsByTagName('div')[2]" );
+		fireunit.key( "fbCommandLine", 13 );
 setTimeout(function(){
-	// Verify basic command execution
-	state = false;
-	fireunit.value( "fbCommandLine", "state = true;" );
-	fireunit.key( "fbCommandLine", 13 );
-	fireunit.ok( state, "Console command executed." );
+		checkText( '<a class="objectLink objectLink-element">&lt;<span class="nodeTag">div</span>&nbsp;id="<span class="nodeValue">last</span>"&gt;</a>', "DOM Element verified." );
 
-	// Trigger large console
-	//fireunit.type( "fbCommandLine", "alert('test');\n" );
-}, 500);
+}, 100);
+		clear();
+
+		// fireunit.panel("console").innerHTML
+
+		// Trigger large console
+		//fireunit.type( "fbCommandLine", "alert('test');\n" );
+	}, 500);
+};
 </script>
 
 </head>
 
 <body>
-	<div id="first">===</div>
+	<div></div>
+	<div id="first" style='color:red;' className="test">===</div>
 	<div id="last">---</div>
 	<textarea id="text">test</textarea>
 </body>

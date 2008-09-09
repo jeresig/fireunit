@@ -20,18 +20,48 @@ Firebug.FireUnitModule = extend(Firebug.Module, {
     watchWindow: function(context, win){
         if (win.wrappedJSObject && win.wrappedJSObject.fireunit)
             return;
+
+        function clean( str ) {
+          return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
         
         win.wrappedJSObject.fireunit = {
+            id: function( id ) {
+              if ( typeof id == "string" ) {
+                if ( win.location.toString().indexOf("chrome:") == 0 ) {
+                  return document.getElementById( id );
+                } else {
+                  return win.document.getElementById( id );
+                }
+              }
+              return id;
+            },
             ok: function( pass, msg ){
-                var panel = context.getPanel(panelName).panelNode;
-                panel.innerHTML += "<li><span style='color:" +
-                    (pass ? "green" : "red") + ";'>" +
-                    (pass ? "PASS" : "FAIL") + "</span> " + msg + "</li>";
+              var panel = context.getPanel(panelName).panelNode;
+              panel.innerHTML += "<li><span style='color:" +
+                (pass ? "green" : "red") + ";'>" +
+                (pass ? "PASS" : "FAIL") + "</span> " +
+                clean( msg ) + "</li>";
+            },
+            compare: function( expected, result, msg ) {
+              var pass = expected == result;
+              var panel = context.getPanel(panelName).panelNode;
+              panel.innerHTML += "<li><span style='color:" +
+                (pass ? "green" : "red") + ";'>" +
+                (pass ? "PASS" : "FAIL") + "</span> " +
+                clean( msg ) +
+                (pass ? "" : "<br/><pre style='font-family:Courier;'>  Expected: " + clean( expected ) +
+                  "\n    Result: " + clean( result ) + "</pre>") + "</li>";
+            },
+            reCompare: function( expected, result, msg ) {
+              if (  RegExp( expected ).test( result ) ) {
+                return this.compare( expected, expected, msg );
+              } else {
+                return this.compare( expected, result, msg );
+              }
             },
             click: function( node ){
-              if ( typeof node === "string" ) {
-                node = document.getElementById(node);
-              }
+              node = this.id( node );
 
               if ( node.click ) {
                 return node.click();
@@ -42,9 +72,7 @@ Firebug.FireUnitModule = extend(Firebug.Module, {
               return node.dispatchEvent( event );
             },
             focus: function( node ){
-              if ( typeof node === "string" ) {
-                node = document.getElementById(node);
-              }
+              node = this.id( node );
 
               if ( node.focus ) {
                 return node.focus();
@@ -55,16 +83,12 @@ Firebug.FireUnitModule = extend(Firebug.Module, {
               return node.dispatchEvent( event );
             },
             value: function( node, text ){
-              if ( typeof node === "string" ) {
-                node = document.getElementById(node);
-              }
+              node = this.id( node );
 
               node.value = text;
             },
             key: function( node, letter ){
-              if ( typeof node === "string" ) {
-                node = document.getElementById(node);
-              }
+              node = this.id( node );
 
               var keyCode = letter, charCode = 0;
 
@@ -77,6 +101,10 @@ Firebug.FireUnitModule = extend(Firebug.Module, {
               event.initKeyEvent("keypress", true, true, doc.defaultView, false, false, false, false, keyCode, charCode);
               return node.dispatchEvent( event );
             },
+            panel: function( name ) {
+              if ( win.location.toString().indexOf("chrome:") == 0 )
+                return FirebugContext.getPanel( name ).panelNode;
+            }
         };
     },
     
