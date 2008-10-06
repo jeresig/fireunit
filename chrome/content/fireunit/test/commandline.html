@@ -32,8 +32,13 @@ function clear(){
 }
 
 window.onload = function(){
- 
-	fireunit.click( "fbStatusBar" );
+
+	var oldThrottle = Application.prefs.getValue("extensions.firebug.throttleMessages", true);
+
+	Application.prefs.setValue("extensions.firebug.throttleMessages", false);
+
+	if ( fireunit.id( "fbContentBox" ).getAttribute("collapsed") !== "false" ) 
+		fireunit.click( "fbStatusBar" );
 	fireunit.focus( "fbCommandLine" );
 
 	setTimeout(function(){
@@ -131,10 +136,10 @@ setTimeout(function(){
 }, 100);
 		clear();
 
-		// fireunit.panel("console").innerHTML
-
 		// Trigger large console
 		//fireunit.type( "fbCommandLine", "alert('test');\n" );
+
+		Application.prefs.setValue("extensions.firebug.throttleMessages", oldThrottle);
 	}, 500);
 };
 </script>
