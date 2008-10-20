@@ -7,6 +7,9 @@ FBL.ns(function() { with (FBL) {
 
 var panelName = "Test";
 
+var testQueue;
+var queueResults = "";
+
 /**
  * Module implementation.
  */
@@ -24,8 +27,31 @@ Firebug.FireUnitModule = extend(Firebug.Module, {
         function clean( str ) {
           return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
-        
+
+        var queue = [];
+
+        function addToQueue(fn){}
+
+        function removeFromQueue(){}
+
         win.wrappedJSObject.fireunit = {
+            runTests: function() {
+              testQueue = Array.prototype.slice.call( arguments );
+              queueResults = "";
+
+              this.testDone();
+            },
+            testDone: function() {
+              if ( testQueue ) {
+                if ( testQueue.length ) {
+                  win.wrappedJSObject.location = testQueue.shift();
+                } else {
+                  var panel = context.getPanel(panelName).panelNode;
+                  panel.innerHTML += queueResults;
+                  queueResults = testQueue = null;
+                }
+              }
+            },
             id: function( id ) {
               if ( typeof id == "string" ) {
                 if ( win.location.toString().indexOf("chrome:") == 0 ) {
@@ -37,11 +63,20 @@ Firebug.FireUnitModule = extend(Firebug.Module, {
               return id;
             },
             ok: function( pass, msg ){
-              var panel = context.getPanel(panelName).panelNode;
-              panel.innerHTML += "<li><span style='color:" +
+              var results = "<li><span style='color:" +
                 (pass ? "green" : "red") + ";'>" +
                 (pass ? "PASS" : "FAIL") + "</span> " +
                 clean( msg ) + "</li>";
+
+              if ( testQueue ) {
+                queueResults += results;
+              } else {
+                var panel = context.getPanel(panelName).panelNode;
+                panel.innerHTML += results;
+              }
+            },
+            test: function( name, fn ) {
+              addToQueue( fn );
             },
             compare: function( expected, result, msg ) {
               var pass = expected == result;
