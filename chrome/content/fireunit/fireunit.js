@@ -9,6 +9,11 @@ var panelName = "Test";
 
 var testQueue;
 var queueResults = "";
+var server;
+var uuid = 1;
+var serverPort = 7080;
+
+var cache = Components.classes["@mozilla.org/network/cache-service;1"].getService(Components.interfaces.nsICacheService);
 
 /**
  * Module implementation.
@@ -34,7 +39,59 @@ Firebug.FireUnitModule = extend(Firebug.Module, {
 
         function removeFromQueue(){}
 
+        function getServer(){
+          if ( !server ) {
+            server = new nsHttpServer();
+            server.start( serverPort );
+          }
+          return server;
+	}
+
+        function chromeToPath(aPath){
+           if (!aPath || !(/^chrome:/.test(aPath)))
+              return urlToPath( aPath );
+
+           var ios = Components.classes['@mozilla.org/network/io-service;1'].getService(Components.interfaces["nsIIOService"]);
+           var uri = ios.newURI(aPath, "UTF-8", null);
+           var cr = Components.classes['@mozilla.org/chrome/chrome-registry;1'].getService(Components.interfaces["nsIChromeRegistry"]);
+           var rv = cr.convertChromeURL(uri).spec;
+
+           if (/^file:/.test(rv))
+              rv = urlToPath(rv);
+           else
+              rv = urlToPath("file://"+rv);
+
+           return rv;
+        }
+
+        function urlToPath(aPath){
+            if (!aPath || !/^file:/.test(aPath)) return;
+        
+            return Components.classes["@mozilla.org/network/protocol;1?name=file"]
+                .createInstance(Components.interfaces.nsIFileProtocolHandler)
+                .getFileFromURLSpec(aPath);
+        }
+
+        var winID = uuid++;
+
         win.wrappedJSObject.fireunit = {
+            forceHttp: function(){
+              cache.evictEntries(Components.interfaces.nsICache.STORE_ON_DISK);
+              cache.evictEntries(Components.interfaces.nsICache.STORE_IN_MEMORY);
+
+              if ( win.wrappedJSObject.location.protocol !== "http:" ) {
+                var file = chromeToPath( win.wrappedJSObject.location + "" );
+                var dir = file.parent;
+
+                getServer().registerDirectory( "/test" + winID + "/", dir );
+
+                win.wrappedJSObject.location = "http://localhost:" + serverPort + "/test" + winID + "/" + file.leafName;
+
+                return false;
+              }
+
+              return true;
+            },
             runTests: function() {
               testQueue = Array.prototype.slice.call( arguments );
               queueResults = "";

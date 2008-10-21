@@ -3,7 +3,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <script>
-fireunit.runTests( "net1.html", "net2.html" );
+if ( fireunit.forceHttp() ) {
+  fireunit.runTests( "net1.html", "net2.html" );
+}
 </script>
 </head>
 <body>
