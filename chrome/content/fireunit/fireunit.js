@@ -194,10 +194,43 @@ Firebug.FireUnitModule = extend(Firebug.Module, {
               return node.dispatchEvent( event );
             },
             panel: function( name ) {
-              if ( win.location.toString().indexOf("chrome:") == 0 )
+              // xxxHonza: in case of net panel tests the URL doesn't have to come from chrome.
+              //if ( win.location.toString().indexOf("chrome:") == 0 )
                 return FirebugContext.getPanel( name ).panelNode;
+            },
+            // HTTP Server
+            registerPathHandler: function(path, handler)
+            {
+                return getServer().registerPathHandler(path, function(metadata, response) {
+                    try {
+                        handler.apply(null, [metadata, response]);
+                    }
+                    catch (err) {
+                        FBTrace.dumpProperties("fireunit.registerPathHandler EXCEPTION", err);
+                    }
+                });
             }
         };
+
+        win.wrappedJSObject.fireunit.__defineGetter__("Firebug", function() {
+            return Firebug;
+        });
+
+        win.wrappedJSObject.fireunit.__defineGetter__("FBL", function() {
+            return FBL;
+        });
+
+        win.wrappedJSObject.fireunit.__defineGetter__("FirebugChrome", function() {
+            return FirebugChrome;
+        });
+
+        win.wrappedJSObject.fireunit.__defineGetter__("FBTrace", function() {
+            return FBTrace;
+        });
+
+        win.wrappedJSObject.fireunit.__defineGetter__("FirebugContext", function() {
+            return FirebugContext;
+        });
     },
     
     unWatchWindow: function(){
