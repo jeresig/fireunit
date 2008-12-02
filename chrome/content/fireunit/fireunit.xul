@@ -3,7 +3,12 @@
 <overlay xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"> 
     <script src="chrome://fireunit/content/httpd.js" type="application/x-javascript"/> 
     <script src="chrome://fireunit/content/fireunit.js" type="application/x-javascript"/> 
+    <script src="chrome://fireunit/content/jsdiff.js" type="application/x-javascript"/> 
 
+    <stringbundleset id="stringbundleset">
+        <stringbundle id="strings_fireUnit" src="chrome://fireunit/locale/fireunit.properties"/>
+    </stringbundleset>
+    
     <commandset id="mainCommandSet"> 
         <command id="cmd_hwReRunTests" oncommand="Firebug.FireUnitModel.onReRunTests(FirebugContext)"/>
     </commandset> 

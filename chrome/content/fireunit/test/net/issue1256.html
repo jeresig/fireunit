@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<script src="utils.js" type="text/javascript"></script>
+<script src="env.js" type="text/javascript"></script>
+<script>
+netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+
+var request = new XMLHttpRequest();
+request.onreadystatechange = function () {
+    if (request.readyState == 4 && request.status == 200)
+        setTimeout(function() {
+            checkParamsTab(request);
+        }, layoutTimeout);
+};
+request.open("POST", "issue1256.txt", true);
+request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+request.send("param1=1 %2B 2");
+
+function checkParamsTab(request)
+{
+    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+    fireunit.FBTrace.sysout("fireunit.issue1256.checkParamsTab", request);
+
+    // Open Firebug UI and activate Net panel.
+    fireunit.Firebug.showBar(true);
+    fireunit.FirebugChrome.selectPanel("net");
+
+    // Get Net panel content
+    var panelNode = fireunit.panel("net");
+    fireunit.ok(panelNode, "Net panel must exist.");
+
+    // Expand the test request with params
+    var netRow = fireunit.FBL.getElementByClass(panelNode, "netRow", "category-xhr", 
+        "hasHeaders", "loaded");
+    fireunit.ok(netRow, "There must be just one xhr request.");
+    fireunit.click(netRow);
+
+    // Activate Params tab.    
+    var netInfoRow = netRow.nextSibling;
+    expandNetTabs(netInfoRow, "netInfoPostTab");
+
+    var postTable = fireunit.FBL.getElementByClass(netInfoRow, "netInfoPostTable");
+    fireunit.ok(postTable, "Info body must be created at this moment.");
+    if (postTable) {
+        var paramName = fireunit.FBL.getElementByClass(postTable, "netInfoParamName").textContent;
+        var paramValue = fireunit.FBL.getElementByClass(postTable, "netInfoParamValue").textContent;
+     
+        fireunit.compare("param1", paramName, "The parameter name must be 'param1'.");
+        fireunit.compare("1 + 2", paramValue, "The parameter value must be '1 + 2'");
+    }
+      
+    // Finish test
+    fireunit.FBTrace.sysout("fireunit.issue1256.DONE");    
+    fireunit.testDone();    
+}
+</script>
+</head>
+<body>
+<h1>Test Case for Issue #1256</h1>
+</body>
+</html>

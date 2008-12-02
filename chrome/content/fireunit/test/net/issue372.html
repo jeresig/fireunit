@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<script src="utils.js" type="text/javascript"></script>
+<script src="env.js" type="text/javascript"></script>
+<script>
+netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+
+// Prepare test data.
+var xml = "<root><test id=\"1\"/></root>";
+var parser = new DOMParser();
+var xmlDoc = parser.parseFromString(xml, "text/xml");
+
+// Send data through XHR POST.
+var request = new XMLHttpRequest();
+request.onreadystatechange = function () {
+    if (request.readyState == 4 && request.status == 200)
+        setTimeout(function() {
+            checkPostTab(request);
+        }, layoutTimeout);
+};
+request.open("POST", "issue372.txt", true);
+request.setRequestHeader("Content-Type", "text/xml;charset=utf-8;");
+request.send(xmlDoc);
+
+// Check net panel's UI
+function checkPostTab(request)
+{
+    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+
+    // Open Firebug UI and activate Net panel.
+    fireunit.Firebug.showBar(true);
+    fireunit.FirebugChrome.selectPanel("net");
+
+    // Get Net panel content
+    var panelNode = fireunit.panel("net");
+    expandNetRows(panelNode, "netRow", "category-xhr");
+    expandNetTabs(panelNode, "netInfoPostTab");
+
+    var infoBodyRow = fireunit.FBL.getElementByClass(panelNode, "netInfoBody", "category-xhr");
+    fireunit.ok(infoBodyRow, "Info body verified");
+    if (!infoBodyRow)
+        return;
+        
+    var postBody = fireunit.FBL.getElementByClass(infoBodyRow, "netInfoPostText");
+    fireunit.ok(postBody, "Post tab body must exist now.");
+    if (!postBody)
+        return;
+
+    var result = unEscapeHTML(postBody.firstChild.innerHTML);
+    fireunit.compare(xml, result, "Post tab body content verified");
+        
+    // Finish test
+    fireunit.FBTrace.sysout("fireunit.issue372.DONE");
+    fireunit.testDone();    
+}
+</script>
+</head>
+<body>
+<h1>Test Case for Issue #372</h1>
+</body>
+</html>

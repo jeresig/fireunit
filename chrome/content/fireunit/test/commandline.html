@@ -23,8 +23,11 @@ function set_d_val(td) {
 
 function checkText( str, msg ) {
 	var divs = fireunit.panel("console").getElementsByTagName("div");
-	var result = divs[ divs.length - 1 ].innerHTML;
-	fireunit.reCompare( str, result, msg );
+    fireunit.ok( divs.length > 0, msg + " " + str);
+    if (divs.length) {
+	    var result = divs[ divs.length - 1 ].innerHTML;
+	    fireunit.reCompare( str, result, msg );
+	}
 }
 
 function clear(){
@@ -116,30 +119,32 @@ window.onload = function(){
 		clear();
 
 		// DOM Elements
-		fireunit.value( "fbCommandLine", "document.getElementsByTagName('div')[0]" );
-		fireunit.key( "fbCommandLine", 13 );
-		checkText( '<a class="objectLink objectLink-element">&lt;<span class="nodeTag">div</span>&gt;</a>', "DOM Element verified." );
+		fireunit.test("DOM Elements", function(){
+			fireunit.value( "fbCommandLine", "document.getElementsByTagName('div')[0]" );
+			fireunit.key( "fbCommandLine", 13 );
+			checkText( '<a class="objectLink objectLink-element">&lt;<span class="nodeTag">div</span>&gt;</a>', "DOM Element verified." );
 
-		fireunit.value( "fbCommandLine", "document.getElementsByTagName('div')[1]" );
-		fireunit.key( "fbCommandLine", 13 );
-		checkText( '<a class="objectLink objectLink-element">&lt;<span class="nodeTag">div</span>&nbsp;id="<span class="nodeValue">first</span>"&nbsp;classname="<span class="nodeValue">test</span>"&nbsp;style="<span class="nodeValue">color: red;</span>"&gt;</a>', "DOM Element verified." );
+			fireunit.value( "fbCommandLine", "document.getElementsByTagName('div')[1]" );
+			fireunit.key( "fbCommandLine", 13 );
+			checkText( '<a class="objectLink objectLink-element">&lt;<span class="nodeTag">div</span>&nbsp;id="<span class="nodeValue">first</span>"&nbsp;classname="<span class="nodeValue">test</span>"&nbsp;style="<span class="nodeValue">color: red;</span>"&gt;</a>', "DOM Element verified." );
 
-		fireunit.value( "fbCommandLine", "document.getElementsByTagName('div')[1]" );
-		fireunit.key( "fbCommandLine", 13 );
-		checkText( '<a class="objectLink objectLink-element">&lt;<span class="nodeTag">div</span>&nbsp;id="<span class="nodeValue">first</span>"&nbsp;classname="<span class="nodeValue">test</span>"&nbsp;style="<span class="nodeValue">color: red;</span>"&gt;</a>', "DOM Element verified." );
+			fireunit.value( "fbCommandLine", "document.getElementsByTagName('div')[1]" );
+			fireunit.key( "fbCommandLine", 13 );
+			checkText( '<a class="objectLink objectLink-element">&lt;<span class="nodeTag">div</span>&nbsp;id="<span class="nodeValue">first</span>"&nbsp;classname="<span class="nodeValue">test</span>"&nbsp;style="<span class="nodeValue">color: red;</span>"&gt;</a>', "DOM Element verified." );
 
-		fireunit.value( "fbCommandLine", "document.getElementsByTagName('div')[2]" );
-		fireunit.key( "fbCommandLine", 13 );
-setTimeout(function(){
-		checkText( '<a class="objectLink objectLink-element">&lt;<span class="nodeTag">div</span>&nbsp;id="<span class="nodeValue">last</span>"&gt;</a>', "DOM Element verified." );
+			fireunit.value( "fbCommandLine", "document.getElementsByTagName('div')[2]" );
+			fireunit.key( "fbCommandLine", 13 );
+			checkText( '<a class="objectLink objectLink-element">&lt;<span class="nodeTag">div</span>&nbsp;id="<span class="nodeValue">last</span>"&gt;</a>', "DOM Element verified." );
 
-}, 100);
-		clear();
+			clear();
+		});
 
 		// Trigger large console
 		//fireunit.type( "fbCommandLine", "alert('test');\n" );
 
-		Application.prefs.setValue("extensions.firebug.throttleMessages", oldThrottle);
+		fireunit.queue(function(){
+			Application.prefs.setValue("extensions.firebug.throttleMessages", oldThrottle);
+		});
 	}, 500);
 };
 </script>

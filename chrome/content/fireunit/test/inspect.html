@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<script src="chrome://firebug/content/xpcom.js"></script>
+<script src="chrome://firebug/content/lib.js"></script>
+<script src="chrome://firebug/content/chrome.js"></script>
+<script src="chrome://firebug/content/domplate.js"></script>
+<script>
+var state = false;
+
+// URL Redirection
+// URL Reloading
+// Async tests
+
+fireunit.click( "fbStatusBar" );
+fireunit.focus( "fbCommandLine" );
+
+setTimeout(function(){
+	// Verify basic command execution
+	state = false;
+	fireunit.value( "fbCommandLine", "state = true;" );
+	fireunit.key( "fbCommandLine", 13 );
+	fireunit.ok( state, "Console command executed." );
+
+	// Trigger large console
+	//fireunit.type( "fbCommandLine", "alert('test');\n" );
+}, 500);
+</script>
+
+</head>
+
+<body>
+	<div id="first">===</div>
+	<div id="last">---</div>
+	<textarea id="text">test</textarea>
+</body>
+</html>

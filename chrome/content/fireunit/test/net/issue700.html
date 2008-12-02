@@ -1,0 +1,79 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<script src="utils.js" type="text/javascript"></script>
+<script src="env.js" type="text/javascript"></script>
+<script>
+netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+
+// Test reponse.
+var bodyContent = "<h1>Response for Issue700.html</h1>";
+var htmlResponse = "<html><head/><body>" + bodyContent + "</body></html>";
+
+// Implementation of a request handler (serve side)
+var index = location.pathname.lastIndexOf(".");
+var requestUri = location.pathname.substr(0, index) + ".txt";
+function requestHandler(metadata, response) {
+    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+    fireunit.FBTrace.sysout("fireunit.issue700.pathHandler executed: " + metadata.path, [metadata, response]);
+    response.setHeader("Content-Type", "text/html", false);
+    response.write(htmlResponse);
+} 
+fireunit.registerPathHandler(requestUri, requestHandler);
+
+// Generate XHR
+var request = new XMLHttpRequest();
+request.onreadystatechange = function () {
+    if (request.readyState == 4 && request.status == 200)
+        setTimeout(function() {
+            checkHtmlTabPhase1(request);
+        }, layoutTimeout);
+};
+request.open("GET", "issue700.txt", true);
+request.send(null);
+
+// Check UI
+function checkHtmlTabPhase1(request)
+{
+    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+    fireunit.FBTrace.sysout("fireunit.issue700.checkHtmlTab", request);
+
+    // Open Firebug UI and activate Net panel.
+    fireunit.Firebug.showBar(true);
+    fireunit.FirebugChrome.selectPanel("net");
+
+    // Expand Net's panel UI so, it's populated with data.
+    var panelNode = fireunit.panel("net");
+    expandNetRows(panelNode, "netRow", "category-xhr");
+
+    // Wait till iframe for preview is fully loaded.
+    var htmlPreview = fireunit.FBL.getElementByClass(panelNode, "netInfoHtmlPreview");
+    htmlPreview.contentWindow.addEventListener("load", checkHtmlTabPhase2, true);
+}
+
+function checkHtmlTabPhase2()
+{
+    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+    
+    var panelNode = fireunit.panel("net");
+    expandNetTabs(panelNode, "netInfoHtmlTab");
+    var htmlPreview = fireunit.FBL.getElementByClass(panelNode, "netInfoHtmlPreview");
+    fireunit.ok(htmlPreview, "Html preview must exist.");
+    if (!htmlPreview)
+        return;
+
+    // Compare content with expected result.        
+    var body = htmlPreview.contentDocument.getElementsByTagName("body")[0];
+    fireunit.compare(bodyContent, body.innerHTML, "HTML preview verified.");
+
+    // Finish
+    fireunit.FBTrace.sysout("fireunit.issue700.DONE");    
+    fireunit.testDone();    
+}
+</script>
+</head>
+<body>
+<h1>Test Case for Issue #700</h1>
+</body>
+</html>

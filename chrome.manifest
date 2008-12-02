@@ -1,2 +1,6 @@
-content fireunit chrome/content/fireunit/ xpcnativewrappers=no
+content fireunit  chrome/content/fireunit/ xpcnativewrappers=no
+skin	fireunit  classic/1.0	chrome/skin/classic/
+
+locale	fireunit  en-US		chrome/locale/en-US/
+
 overlay chrome://firebug/content/firebugOverlay.xul         chrome://fireunit/content/fireunit.xul

@@ -4,7 +4,13 @@
 <head>
 <script>
 if ( fireunit.forceHttp() ) {
-  fireunit.runTests( "net1.html", "net2.html" );
+  fireunit.runTests( 
+    "issue176.html",        // Filter for Flash requests
+    "issue601.html",        // Response Tab
+    "issue1256.html",       // Params Tab
+    "issue372.html",        // Post Tab
+    "issue700.html"         // HTML Tab
+  );
 }
 </script>
 </head>
