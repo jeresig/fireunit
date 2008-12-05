@@ -33,6 +33,7 @@ request.onreadystatechange = function () {
 request.open("GET", "issue700.txt", true);
 request.send(null);
 
+var htmlPreview;
 // Check UI
 function checkHtmlTabPhase1(request)
 {
@@ -48,14 +49,14 @@ function checkHtmlTabPhase1(request)
     expandNetRows(panelNode, "netRow", "category-xhr");
 
     // Wait till iframe for preview is fully loaded.
-    var htmlPreview = fireunit.FBL.getElementByClass(panelNode, "netInfoHtmlPreview");
-    htmlPreview.contentWindow.addEventListener("load", checkHtmlTabPhase2, true);
+    htmlPreview = fireunit.FBL.getElementByClass(panelNode, "netInfoHtmlPreview");
+    setTimeout(checkHtmlTabPhase2, 1000);
 }
 
 function checkHtmlTabPhase2()
 {
     netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
-    
+
     var panelNode = fireunit.panel("net");
     expandNetTabs(panelNode, "netInfoHtmlTab");
     var htmlPreview = fireunit.FBL.getElementByClass(panelNode, "netInfoHtmlPreview");
