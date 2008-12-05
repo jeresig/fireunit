@@ -80,8 +80,8 @@ Firebug.FireUnitModule = extend(Firebug.Module,
 
     addStyleSheets: function(panel)
     {
-	    this.addStyleSheet(panel.document, "chrome://fireunit/skin/tabView.css", "tabViewCss");
-	    this.addStyleSheet(panel.document, "chrome://fireunit/skin/fireunit.css", "fireUnitCss");
+        this.addStyleSheet(panel.document, "chrome://fireunit/skin/tabView.css", "tabViewCss");
+        this.addStyleSheet(panel.document, "chrome://fireunit/skin/fireunit.css", "fireUnitCss");
     },
 
     // xxxHonza: There should be APIs in lib.js to easily append a new stylesheet.
@@ -93,7 +93,7 @@ Firebug.FireUnitModule = extend(Firebug.Module,
 
         var styleSheet = createStyleSheet(doc, uri);
         styleSheet.setAttribute("id", id);
-	    addStyleSheet(doc, styleSheet);
+        addStyleSheet(doc, styleSheet);
     },
 
     /**
@@ -199,6 +199,9 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
         runTests: function() {
           testQueue = Array.prototype.slice.call( arguments );
           queueResults = [];
+
+          if (FBTrace.DBG_FIREUNIT)
+            FBTrace.sysout("fireunit.runTests " + this.win.wrappedJSObject.location, testQueue);
 
           this.testDone();
         },
@@ -316,7 +319,7 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
                     handler.apply(null, [metadata, response]);
                 }
                 catch (err) {
-                    FBTrace.dumpProperties("fireunit.registerPathHandler EXCEPTION", err);
+                    FBTrace.sysout("fireunit.registerPathHandler EXCEPTION", err);
                 }
             });
         }
@@ -362,7 +365,7 @@ function $FU_STR(name)
         if (FBTrace.DBG_FIREUNIT)
         {
             FBTrace.sysout("fireunit.Missing translation for: " + name + "\n");
-            FBTrace.dumpProperties("fireunit.getString FAILS ", err);
+            FBTrace.sysout("fireunit.getString FAILS ", err);
         }
     }
 
@@ -651,7 +654,7 @@ Firebug.FireUnitModule.TestResultRep = domplate(Firebug.Rep,
  * This template represents an "info-body" for expanded test-result. This
  * object also implements logic related to a tab view.
  *
- * xxxHonza: since the tab view is used already used several times, it would
+ * xxxHonza: since the tab view is used already several times, it would
  * be very useful to have a TabView widget defined in Firebug's Domplate
  * repository.
  */ 
@@ -761,9 +764,9 @@ Firebug.FireUnitModule.TestResultTabView = domplate(Firebug.Rep,
 
     hideCompareTab: function(result)
     {
-		// The Compare tab is visible if any of these two members is set.
-		// This is useful since sometimes the expected result is null and 
-		// the user wants to see it also in the UI.
+        // The Compare tab is visible if any of these two members is set.
+        // This is useful since sometimes the expected result is null and 
+        // the user wants to see it also in the UI.
         return !result.expected && !result.result;
     },
 
