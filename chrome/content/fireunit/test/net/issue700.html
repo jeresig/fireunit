@@ -33,7 +33,6 @@ request.onreadystatechange = function () {
 request.open("GET", "issue700.txt", true);
 request.send(null);
 
-var htmlPreview;
 // Check UI
 function checkHtmlTabPhase1(request)
 {
@@ -49,7 +48,13 @@ function checkHtmlTabPhase1(request)
     expandNetRows(panelNode, "netRow", "category-xhr");
 
     // Wait till iframe for preview is fully loaded.
-    htmlPreview = fireunit.FBL.getElementByClass(panelNode, "netInfoHtmlPreview");
+    var htmlPreview = fireunit.FBL.getElementByClass(panelNode, "netInfoHtmlPreview");
+    fireunit.ok(htmlPreview, "Html preview must exist (Firebug 1.4)");
+    if (!htmlPreview) {
+        fireunit.testDone();
+        return;
+    }
+
     setTimeout(checkHtmlTabPhase2, 1000);
 }
 
@@ -60,17 +65,14 @@ function checkHtmlTabPhase2()
     var panelNode = fireunit.panel("net");
     expandNetTabs(panelNode, "netInfoHtmlTab");
     var htmlPreview = fireunit.FBL.getElementByClass(panelNode, "netInfoHtmlPreview");
-    fireunit.ok(htmlPreview, "Html preview must exist.");
-    if (!htmlPreview)
-        return;
 
-    // Compare content with expected result.        
+    // Compare content with expected result.
     var body = htmlPreview.contentDocument.getElementsByTagName("body")[0];
     fireunit.compare(bodyContent, body.innerHTML, "HTML preview verified.");
 
     // Finish
-    fireunit.FBTrace.sysout("fireunit.issue700.DONE");    
-    fireunit.testDone();    
+    fireunit.FBTrace.sysout("fireunit.issue700.DONE");
+    fireunit.testDone();
 }
 </script>
 </head>
