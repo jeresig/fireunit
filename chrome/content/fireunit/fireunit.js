@@ -761,7 +761,10 @@ Firebug.FireUnitModule.TestResultTabView = domplate(Firebug.Rep,
 
     hideCompareTab: function(result)
     {
-        return !(result.expected && result.result);
+		// The Compare tab is visible if any of these two members is set.
+		// This is useful since sometimes the expected result is null and 
+		// the user wants to see it also in the UI.
+        return !result.expected && !result.result;
     },
 
     hideDiffGroup: function(result)
