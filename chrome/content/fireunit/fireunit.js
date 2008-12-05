@@ -493,22 +493,22 @@ FireUnitPanel.prototype = extend(Firebug.Panel,
 Firebug.FireUnitModule.TestResultRep = domplate(Firebug.Rep,
 {
     tableTag:
-        TABLE({class: "testTable", cellpadding: 0, cellspacing: 0, onclick: "$onClick"},
+        TABLE({"class": "testTable", cellpadding: 0, cellspacing: 0, onclick: "$onClick"},
             TBODY()
         ),
 
     resultTag:
         FOR("result", "$results",
-            TR({class: "testResultRow", _repObject: "$result",
+            TR({"class": "testResultRow", _repObject: "$result",
                 $testError: "$result|isError",
                 $testOK: "$result|isOK"},
-                    TD({class: "testResultCol", width: "100%"},
-                    DIV({class: "testResultMessage testResultLabel"},
+                    TD({"class": "testResultCol", width: "100%"},
+                    DIV({"class": "testResultMessage testResultLabel"},
                         "$result|getMessage"
                     )
                 ),
-                TD({class: "testResultCol"},
-                    DIV({class: "testResultFileName testResultLabel"},
+                TD({"class": "testResultCol"},
+                    DIV({"class": "testResultFileName testResultLabel"},
                         "$result.fileName"
                     )
                 )
@@ -516,20 +516,20 @@ Firebug.FireUnitModule.TestResultRep = domplate(Firebug.Rep,
         ),
 
     resultInfoTag:
-        TR({class: "testResultInfoRow", _repObject: "$result", 
+        TR({"class": "testResultInfoRow", _repObject: "$result", 
             $testError: "$result|isError"},
-            TD({class: "testResultInfoCol", colspan: 2})
+            TD({"class": "testResultInfoCol", colspan: 2})
         ),
 
     summaryTag:
-        TR({class: "testResultSummaryRow testResultRow"},
-            TD({class: "testResultCol", colspan: 2},
-                SPAN({class: "testResultSummaryLabel",
+        TR({"class": "testResultSummaryRow testResultRow"},
+            TD({"class": "testResultCol", colspan: 2},
+                SPAN({"class": "testResultSummaryLabel",
                     $summaryPass: "$summary|summaryPassed"},
                     $FU_STR("fireunit.option.Passing_Tests"),
                     ": $summary.passing"
                 ),
-                SPAN({class: "testResultSummaryLabel",
+                SPAN({"class": "testResultSummaryLabel",
                     $collapsed: "$summary|summaryPassed",
                     $testError: "$summary.failing"},
                     $FU_STR("fireunit.option.Failing_Tests"),
@@ -679,11 +679,11 @@ Firebug.FireUnitModule.TestResultTabView = domplate(Firebug.Rep,
     // List of tabs
     tabBar: 
         DIV({"class": "tabBar"},
-            A({class: "StackTab tab", onclick: "$onClickTab", 
+            A({"class": "StackTab tab", onclick: "$onClickTab", 
                 view: "Stack", $collapsed: "$result|hideStackTab"},
                     $FU_STR("fireunit.tab.Stack")
             ),
-            A({class: "CompareTab tab", onclick: "$onClickTab", 
+            A({"class": "CompareTab tab", onclick: "$onClickTab", 
                 view: "Compare", $collapsed: "$result|hideCompareTab"},
                     $FU_STR("fireunit.tab.Compare")
             )
@@ -692,18 +692,18 @@ Firebug.FireUnitModule.TestResultTabView = domplate(Firebug.Rep,
     // List of tab bodies
     tabBodies: 
         DIV({"class": "tabBodies"},
-            DIV({class: "tabStackBody tabBody"}),
-            DIV({class: "tabCompareBody tabBody"})
+            DIV({"class": "tabStackBody tabBody"}),
+            DIV({"class": "tabCompareBody tabBody"})
         ),
 
     // Stack tab displayed within resultInfoRow
     stackTag:
-        TABLE({class: "testResultStackInfoBody", cellpadding: 0, cellspacing: 0},
+        TABLE({"class": "testResultStackInfoBody", cellpadding: 0, cellspacing: 0},
             TBODY(
                 FOR("stack", "$result.stack",
                     TR(
                         TD(
-                            A({class: "stackFrameLink", onclick: "$onClickStackFrame",
+                            A({"class": "stackFrameLink", onclick: "$onClickStackFrame",
                                 lineNumber: "$stack.lineNumber"},
                                 "$stack.fileName"),
                             SPAN("&nbsp;"),
@@ -716,40 +716,40 @@ Firebug.FireUnitModule.TestResultTabView = domplate(Firebug.Rep,
 
     // Compare tab displayed within resultInfoRow
     compareTag:
-        TABLE({class: "testResultCompareInfoBody", cellpadding: 0, cellspacing: 0},
+        TABLE({"class": "testResultCompareInfoBody", cellpadding: 0, cellspacing: 0},
             TBODY(
-                TR({class: "testResultCompareTitle expected"},
+                TR({"class": "testResultCompareTitle expected"},
                     TD(
                         $FU_STR("fireunit.title.Expected")
                     ),
-                    TD({class: "testResultCompareSwitch expected", 
+                    TD({"class": "testResultCompareSwitch expected", 
                         onclick: "$onSwitchView"},
                         $FU_STR("fireunit.switch.view_source")
                     )
                 ),
                 TR(
-                    TD({class: "testResultExpected", colspan: 2})
+                    TD({"class": "testResultExpected", colspan: 2})
                 ),
-                TR({class: "testResultCompareTitle result"},
+                TR({"class": "testResultCompareTitle result"},
                     TD(
                         $FU_STR("fireunit.title.Result")
                     ),
-                    TD({class: "testResultCompareSwitch result", 
+                    TD({"class": "testResultCompareSwitch result", 
                         onclick: "$onSwitchView"},
                         $FU_STR("fireunit.switch.view_source")
                     )
                 ),
                 TR(
-                    TD({class: "testResultResult", colspan: 2})
+                    TD({"class": "testResultResult", colspan: 2})
                 ),
-                TR({class: "testResultCompareTitle diff", 
+                TR({"class": "testResultCompareTitle diff", 
                     $collapsed: "$result|hideDiffGroup"},
                     TD({colspan: 2},
                         $FU_STR("fireunit.title.Difference")
                     )
                 ),
                 TR(
-                    TD({class: "testResultDiff", colspan: 2})
+                    TD({"class": "testResultDiff", colspan: 2})
                 )
             )
         ),
@@ -907,11 +907,11 @@ Firebug.FireUnitModule.TestResultTabView = domplate(Firebug.Rep,
 Firebug.FireUnitModule.ParseErrorRep = domplate(Firebug.Rep, 
 {
     tag:
-        DIV({class: "xmlInfoError"},
-            DIV({class: "xmlInfoErrorMsg"}, "$error.message"),
-            PRE({class: "xmlInfoErrorSource"}, "$error|getSource"),
+        DIV({"class": "xmlInfoError"},
+            DIV({"class": "xmlInfoErrorMsg"}, "$error.message"),
+            PRE({"class": "xmlInfoErrorSource"}, "$error|getSource"),
             BR(),
-            PRE({class: "xmlInfoSource"})
+            PRE({"class": "xmlInfoSource"})
         ),
     
     getSource: function(error) 
