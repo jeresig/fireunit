@@ -51,7 +51,7 @@ Firebug.FireUnitModule = extend(Firebug.Module,
         {
             // If Firebug is opened in a new window, the stylesheet must be 
             // appended again.
-            this.addStyleSheets(context.window.document);
+            this.addStyleSheets(context.getPanel(panelName));
         }
     },
 
@@ -62,7 +62,7 @@ Firebug.FireUnitModule = extend(Firebug.Module,
         var hwButtons = browser.chrome.$("fbFireUnitButtons");
         collapse(hwButtons, !isHwPanel);
     },
-    
+
     watchWindow: function(context, win)
     {
         if (win.wrappedJSObject && win.wrappedJSObject.fireunit)
@@ -72,7 +72,7 @@ Firebug.FireUnitModule = extend(Firebug.Module,
         // provides all necessary APIs to write a unit test.
         win.wrappedJSObject.fireunit = new this.Fireunit(context, win);
     },
-    
+
     unWatchWindow: function()
     {
         delete win.wrappedJSObject.fireunit;
