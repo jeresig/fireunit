@@ -172,5 +172,5 @@
 
 /* Support for FBTraceConsole */ 
 .DBG_FIREUNIT {
-	color: Orange;
+    color: rgb(255, 165, 0);
 }
