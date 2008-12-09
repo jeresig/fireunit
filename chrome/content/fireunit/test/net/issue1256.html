@@ -35,6 +35,10 @@ function checkParamsTab(request)
     var netRow = fireunit.FBL.getElementByClass(panelNode, "netRow", "category-xhr", 
         "hasHeaders", "loaded");
     fireunit.ok(netRow, "There must be just one xhr request.");
+    if (!netRow) {
+        fireunit.testDone();
+        return;
+    }
     fireunit.click(netRow);
 
     // Activate Params tab.    
@@ -46,14 +50,14 @@ function checkParamsTab(request)
     if (postTable) {
         var paramName = fireunit.FBL.getElementByClass(postTable, "netInfoParamName").textContent;
         var paramValue = fireunit.FBL.getElementByClass(postTable, "netInfoParamValue").textContent;
-     
+
         fireunit.compare("param1", paramName, "The parameter name must be 'param1'.");
         fireunit.compare("1 + 2", paramValue, "The parameter value must be '1 + 2'");
     }
-      
+
     // Finish test
-    fireunit.FBTrace.sysout("fireunit.issue1256.DONE");    
-    fireunit.testDone();    
+    fireunit.FBTrace.sysout("fireunit.issue1256.DONE");
+    fireunit.testDone();
 }
 </script>
 </head>
