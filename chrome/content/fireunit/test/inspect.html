@@ -15,14 +15,14 @@ var state = false;
 // URL Reloading
 // Async tests
 
-fireunit.click( "fbStatusBar" );
-fireunit.focus( "fbCommandLine" );
+fireunit.click( fireunit.chromeID( "fbStatusBar" ) );
+fireunit.focus( fireunit.chromeID( "fbCommandLine" ) );
 
 setTimeout(function(){
 	// Verify basic command execution
 	state = false;
-	fireunit.value( "fbCommandLine", "state = true;" );
-	fireunit.key( "fbCommandLine", 13 );
+	fireunit.value( fireunit.chromeID( "fbCommandLine" ), "state = true;" );
+	fireunit.key( fireunit.chromeID( "fbCommandLine" ), 13 );
 	fireunit.ok( state, "Console command executed." );
 
 	// Trigger large console

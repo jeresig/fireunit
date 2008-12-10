@@ -235,13 +235,13 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
         },
         id: function( id ) {
           if ( typeof id == "string" ) {
-            if ( canChrome() ) {
-              return document.getElementById( id );
-            } else {
-              return this.win.document.getElementById( id );
-            }
+            return this.win.document.getElementById( id );
           }
           return id;
+        },
+        chromeID: function( id ) {
+          if ( typeof id == "string" && canChrome() )
+            return document.getElementById( id );
         },
         ok: function( pass, msg ) {
           var result = new Firebug.FireUnitModule.TestResult(this.win, pass, msg);
