@@ -334,26 +334,31 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
         }
     };
 
-    // Getters for access to Firebug's internal APIs.
-    fireunit.__defineGetter__("Firebug", function() {
-        return Firebug;
-    });
+    // Only expose these if we're in a chrome-accessible area
+    if ( canChrome() ) {
 
-    fireunit.__defineGetter__("FBL", function() {
-        return FBL;
-    });
+        // Getters for access to Firebug's internal APIs.
+        fireunit.__defineGetter__("Firebug", function() {
+            return Firebug;
+        });
 
-    fireunit.__defineGetter__("FirebugChrome", function() {
-        return FirebugChrome;
-    });
+        fireunit.__defineGetter__("FBL", function() {
+            return FBL;
+        });
 
-    fireunit.__defineGetter__("FBTrace", function() {
-        return FBTrace;
-    });
+        fireunit.__defineGetter__("FirebugChrome", function() {
+            return FirebugChrome;
+        });
 
-    fireunit.__defineGetter__("FirebugContext", function() {
-        return FirebugContext;
-    });
+        fireunit.__defineGetter__("FBTrace", function() {
+            return FBTrace;
+        });
+
+        fireunit.__defineGetter__("FirebugContext", function() {
+            return FirebugContext;
+        });
+
+    }
 
     return fireunit;
 }();
