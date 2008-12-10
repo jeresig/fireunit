@@ -174,6 +174,9 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
             .getFileFromURLSpec(aPath);
     }
 
+    function getTestURL(test) {
+        return "http://localhost:" + serverPort + "/test" + winID + "/" + test;
+    }
     var winID = uuid++;
 
     // Define fireunit APIs.
@@ -188,9 +191,7 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
 
             getServer().registerDirectory( "/test" + winID + "/", dir );
 
-            this.win.wrappedJSObject.location = "http://localhost:" + serverPort + "/test" + 
-                winID + "/" + file.leafName;
-
+            this.win.wrappedJSObject.location = getTestURL(file.leafName); 
             return false;
           }
 
@@ -212,7 +213,7 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
           var panel = this.context.getPanel(panelName);
           if ( testQueue ) {
             if ( testQueue.length ) {
-              this.win.wrappedJSObject.location = testQueue.shift();
+              this.win.wrappedJSObject.location = getTestURL(testQueue.shift());
             } else {
               panel.appendResults(queueResults);
               panel.appendSummary();
