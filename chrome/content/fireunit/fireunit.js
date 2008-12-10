@@ -174,6 +174,19 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
             .getFileFromURLSpec(aPath);
     }
 
+    function canChrome(){
+        var location = this.win.wrappedJSObject.location,
+            protocol = location.protocol;
+
+        return protocol === "chrome:" ||
+            location.toString().indexOf("http://localhost:" + serverPort) == 0;
+    }
+
+    function canServer(){
+        return canChrome() ||
+            this.win.wrappedJSObject.location.protocol === "file:";
+    }
+
     var winID = uuid++;
 
     // Define fireunit APIs.
@@ -182,7 +195,7 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
           cache.evictEntries(Ci.nsICache.STORE_ON_DISK);
           cache.evictEntries(Ci.nsICache.STORE_IN_MEMORY);
 
-          if ( this.win.wrappedJSObject.location.protocol !== "http:" ) {
+          if ( canServer() ) {
             var file = chromeToPath( this.win.wrappedJSObject.location + "" );
             var dir = file.parent;
 
@@ -222,7 +235,7 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
         },
         id: function( id ) {
           if ( typeof id == "string" ) {
-            if ( this.win.location.toString().indexOf("chrome:") == 0 ) {
+            if ( canChrome() ) {
               return document.getElementById( id );
             } else {
               return this.win.document.getElementById( id );
@@ -305,9 +318,8 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
         panel: function( name ) {
           // xxxHonza: in case of net panel tests the URL doesn't have to come from chrome,
           // but also from local host.
-          if ( this.win.location.toString().indexOf("chrome:") == 0 ||
-              this.win.location.toString().indexOf("http://localhost:" + serverPort) == 0)
-            return this.context.getPanel( name ).panelNode;
+          if ( canChrome() )
+              return this.context.getPanel( name ).panelNode;
         },
         // HTTP Server
         registerPathHandler: function(path, handler) {
