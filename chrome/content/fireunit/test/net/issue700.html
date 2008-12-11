@@ -49,27 +49,30 @@ function checkHtmlTabPhase1(request)
 
     // Wait till iframe for preview is fully loaded.
     var htmlPreview = fireunit.FBL.getElementByClass(panelNode, "netInfoHtmlPreview");
-    htmlPreview.contentWindow.addEventListener("load", checkHtmlTabPhase2, true);
+    fireunit.ok(htmlPreview, "Html preview must exist (Firebug 1.4)");
+    if (!htmlPreview) {
+        fireunit.testDone();
+        return;
+    }
+
+    setTimeout(checkHtmlTabPhase2, 1000);
 }
 
 function checkHtmlTabPhase2()
 {
     netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
-    
+
     var panelNode = fireunit.panel("net");
     expandNetTabs(panelNode, "netInfoHtmlTab");
     var htmlPreview = fireunit.FBL.getElementByClass(panelNode, "netInfoHtmlPreview");
-    fireunit.ok(htmlPreview, "Html preview must exist.");
-    if (!htmlPreview)
-        return;
 
-    // Compare content with expected result.        
+    // Compare content with expected result.
     var body = htmlPreview.contentDocument.getElementsByTagName("body")[0];
     fireunit.compare(bodyContent, body.innerHTML, "HTML preview verified.");
 
     // Finish
-    fireunit.FBTrace.sysout("fireunit.issue700.DONE");    
-    fireunit.testDone();    
+    fireunit.FBTrace.sysout("fireunit.issue700.DONE");
+    fireunit.testDone();
 }
 </script>
 </head>

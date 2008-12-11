@@ -51,7 +51,7 @@ function checkResponseTab(request)
             responseBody.firstChild.firstChild);
         
         if (responseBody.firstChild.firstChild) {
-            fireunit.compare("Response for test_issue601.htm", 
+            fireunit.compare("This is \nmultiline \nresponse \nfor issue601.htm", 
                 responseBody.firstChild.firstChild.nodeValue, 
                 "Test response must match.");
         }

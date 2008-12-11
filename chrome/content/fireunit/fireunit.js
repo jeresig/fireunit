@@ -51,7 +51,7 @@ Firebug.FireUnitModule = extend(Firebug.Module,
         {
             // If Firebug is opened in a new window, the stylesheet must be 
             // appended again.
-            this.addStyleSheets(context.window.document);
+            this.addStyleSheets(context.getPanel(panelName));
         }
     },
 
@@ -62,7 +62,7 @@ Firebug.FireUnitModule = extend(Firebug.Module,
         var hwButtons = browser.chrome.$("fbFireUnitButtons");
         collapse(hwButtons, !isHwPanel);
     },
-    
+
     watchWindow: function(context, win)
     {
         if (win.wrappedJSObject && win.wrappedJSObject.fireunit)
@@ -72,7 +72,7 @@ Firebug.FireUnitModule = extend(Firebug.Module,
         // provides all necessary APIs to write a unit test.
         win.wrappedJSObject.fireunit = new this.Fireunit(context, win);
     },
-    
+
     unWatchWindow: function()
     {
         delete win.wrappedJSObject.fireunit;
@@ -80,8 +80,8 @@ Firebug.FireUnitModule = extend(Firebug.Module,
 
     addStyleSheets: function(panel)
     {
-	    this.addStyleSheet(panel.document, "chrome://fireunit/skin/tabView.css", "tabViewCss");
-	    this.addStyleSheet(panel.document, "chrome://fireunit/skin/fireunit.css", "fireUnitCss");
+        this.addStyleSheet(panel.document, "chrome://fireunit/skin/tabView.css", "tabViewCss");
+        this.addStyleSheet(panel.document, "chrome://fireunit/skin/fireunit.css", "fireUnitCss");
     },
 
     // xxxHonza: There should be APIs in lib.js to easily append a new stylesheet.
@@ -93,7 +93,7 @@ Firebug.FireUnitModule = extend(Firebug.Module,
 
         var styleSheet = createStyleSheet(doc, uri);
         styleSheet.setAttribute("id", id);
-	    addStyleSheet(doc, styleSheet);
+        addStyleSheet(doc, styleSheet);
     },
 
     /**
@@ -187,6 +187,10 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
             this.win.wrappedJSObject.location.protocol === "file:";
     }
 
+    function getTestURL(test) {
+        return "http://localhost:" + serverPort + "/test" + winID + "/" + test;
+    }
+
     var winID = uuid++;
 
     // Define fireunit APIs.
@@ -201,9 +205,7 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
 
             getServer().registerDirectory( "/test" + winID + "/", dir );
 
-            this.win.wrappedJSObject.location = "http://localhost:" + serverPort + "/test" + 
-                winID + "/" + file.leafName;
-
+            this.win.wrappedJSObject.location = getTestURL(file.leafName); 
             return false;
           }
 
@@ -212,6 +214,9 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
         runTests: function() {
           testQueue = Array.prototype.slice.call( arguments );
           queueResults = [];
+
+          if (FBTrace.DBG_FIREUNIT)
+            FBTrace.sysout("fireunit.runTests " + this.win.wrappedJSObject.location, testQueue);
 
           this.testDone();
         },
@@ -222,7 +227,7 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
           var panel = this.context.getPanel(panelName);
           if ( testQueue ) {
             if ( testQueue.length ) {
-              this.win.wrappedJSObject.location = testQueue.shift();
+              this.win.wrappedJSObject.location = getTestURL(testQueue.shift());
             } else {
               panel.appendResults(queueResults);
               panel.appendSummary();
@@ -328,7 +333,7 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
                     handler.apply(null, [metadata, response]);
                 }
                 catch (err) {
-                    FBTrace.dumpProperties("fireunit.registerPathHandler EXCEPTION", err);
+                    FBTrace.sysout("fireunit.registerPathHandler EXCEPTION", err);
                 }
             });
         }
@@ -379,7 +384,7 @@ function $FU_STR(name)
         if (FBTrace.DBG_FIREUNIT)
         {
             FBTrace.sysout("fireunit.Missing translation for: " + name + "\n");
-            FBTrace.dumpProperties("fireunit.getString FAILS ", err);
+            FBTrace.sysout("fireunit.getString FAILS ", err);
         }
     }
 
@@ -510,22 +515,22 @@ FireUnitPanel.prototype = extend(Firebug.Panel,
 Firebug.FireUnitModule.TestResultRep = domplate(Firebug.Rep,
 {
     tableTag:
-        TABLE({class: "testTable", cellpadding: 0, cellspacing: 0, onclick: "$onClick"},
+        TABLE({"class": "testTable", cellpadding: 0, cellspacing: 0, onclick: "$onClick"},
             TBODY()
         ),
 
     resultTag:
         FOR("result", "$results",
-            TR({class: "testResultRow", _repObject: "$result",
+            TR({"class": "testResultRow", _repObject: "$result",
                 $testError: "$result|isError",
                 $testOK: "$result|isOK"},
-                    TD({class: "testResultCol", width: "100%"},
-                    DIV({class: "testResultMessage testResultLabel"},
+                    TD({"class": "testResultCol", width: "100%"},
+                    DIV({"class": "testResultMessage testResultLabel"},
                         "$result|getMessage"
                     )
                 ),
-                TD({class: "testResultCol"},
-                    DIV({class: "testResultFileName testResultLabel"},
+                TD({"class": "testResultCol"},
+                    DIV({"class": "testResultFileName testResultLabel"},
                         "$result.fileName"
                     )
                 )
@@ -533,20 +538,20 @@ Firebug.FireUnitModule.TestResultRep = domplate(Firebug.Rep,
         ),
 
     resultInfoTag:
-        TR({class: "testResultInfoRow", _repObject: "$result", 
+        TR({"class": "testResultInfoRow", _repObject: "$result", 
             $testError: "$result|isError"},
-            TD({class: "testResultInfoCol", colspan: 2})
+            TD({"class": "testResultInfoCol", colspan: 2})
         ),
 
     summaryTag:
-        TR({class: "testResultSummaryRow testResultRow"},
-            TD({class: "testResultCol", colspan: 2},
-                SPAN({class: "testResultSummaryLabel",
+        TR({"class": "testResultSummaryRow testResultRow"},
+            TD({"class": "testResultCol", colspan: 2},
+                SPAN({"class": "testResultSummaryLabel",
                     $summaryPass: "$summary|summaryPassed"},
                     $FU_STR("fireunit.option.Passing_Tests"),
                     ": $summary.passing"
                 ),
-                SPAN({class: "testResultSummaryLabel",
+                SPAN({"class": "testResultSummaryLabel",
                     $collapsed: "$summary|summaryPassed",
                     $testError: "$summary.failing"},
                     $FU_STR("fireunit.option.Failing_Tests"),
@@ -668,7 +673,7 @@ Firebug.FireUnitModule.TestResultRep = domplate(Firebug.Rep,
  * This template represents an "info-body" for expanded test-result. This
  * object also implements logic related to a tab view.
  *
- * xxxHonza: since the tab view is used already used several times, it would
+ * xxxHonza: since the tab view is used already several times, it would
  * be very useful to have a TabView widget defined in Firebug's Domplate
  * repository.
  */ 
@@ -696,11 +701,11 @@ Firebug.FireUnitModule.TestResultTabView = domplate(Firebug.Rep,
     // List of tabs
     tabBar: 
         DIV({"class": "tabBar"},
-            A({class: "StackTab tab", onclick: "$onClickTab", 
+            A({"class": "StackTab tab", onclick: "$onClickTab", 
                 view: "Stack", $collapsed: "$result|hideStackTab"},
                     $FU_STR("fireunit.tab.Stack")
             ),
-            A({class: "CompareTab tab", onclick: "$onClickTab", 
+            A({"class": "CompareTab tab", onclick: "$onClickTab", 
                 view: "Compare", $collapsed: "$result|hideCompareTab"},
                     $FU_STR("fireunit.tab.Compare")
             )
@@ -709,18 +714,18 @@ Firebug.FireUnitModule.TestResultTabView = domplate(Firebug.Rep,
     // List of tab bodies
     tabBodies: 
         DIV({"class": "tabBodies"},
-            DIV({class: "tabStackBody tabBody"}),
-            DIV({class: "tabCompareBody tabBody"})
+            DIV({"class": "tabStackBody tabBody"}),
+            DIV({"class": "tabCompareBody tabBody"})
         ),
 
     // Stack tab displayed within resultInfoRow
     stackTag:
-        TABLE({class: "testResultStackInfoBody", cellpadding: 0, cellspacing: 0},
+        TABLE({"class": "testResultStackInfoBody", cellpadding: 0, cellspacing: 0},
             TBODY(
                 FOR("stack", "$result.stack",
                     TR(
                         TD(
-                            A({class: "stackFrameLink", onclick: "$onClickStackFrame",
+                            A({"class": "stackFrameLink", onclick: "$onClickStackFrame",
                                 lineNumber: "$stack.lineNumber"},
                                 "$stack.fileName"),
                             SPAN("&nbsp;"),
@@ -733,40 +738,40 @@ Firebug.FireUnitModule.TestResultTabView = domplate(Firebug.Rep,
 
     // Compare tab displayed within resultInfoRow
     compareTag:
-        TABLE({class: "testResultCompareInfoBody", cellpadding: 0, cellspacing: 0},
+        TABLE({"class": "testResultCompareInfoBody", cellpadding: 0, cellspacing: 0},
             TBODY(
-                TR({class: "testResultCompareTitle expected"},
+                TR({"class": "testResultCompareTitle expected"},
                     TD(
                         $FU_STR("fireunit.title.Expected")
                     ),
-                    TD({class: "testResultCompareSwitch expected", 
+                    TD({"class": "testResultCompareSwitch expected", 
                         onclick: "$onSwitchView"},
                         $FU_STR("fireunit.switch.view_source")
                     )
                 ),
                 TR(
-                    TD({class: "testResultExpected", colspan: 2})
+                    TD({"class": "testResultExpected", colspan: 2})
                 ),
-                TR({class: "testResultCompareTitle result"},
+                TR({"class": "testResultCompareTitle result"},
                     TD(
                         $FU_STR("fireunit.title.Result")
                     ),
-                    TD({class: "testResultCompareSwitch result", 
+                    TD({"class": "testResultCompareSwitch result", 
                         onclick: "$onSwitchView"},
                         $FU_STR("fireunit.switch.view_source")
                     )
                 ),
                 TR(
-                    TD({class: "testResultResult", colspan: 2})
+                    TD({"class": "testResultResult", colspan: 2})
                 ),
-                TR({class: "testResultCompareTitle diff", 
+                TR({"class": "testResultCompareTitle diff", 
                     $collapsed: "$result|hideDiffGroup"},
                     TD({colspan: 2},
                         $FU_STR("fireunit.title.Difference")
                     )
                 ),
                 TR(
-                    TD({class: "testResultDiff", colspan: 2})
+                    TD({"class": "testResultDiff", colspan: 2})
                 )
             )
         ),
@@ -778,7 +783,10 @@ Firebug.FireUnitModule.TestResultTabView = domplate(Firebug.Rep,
 
     hideCompareTab: function(result)
     {
-        return !(result.expected && result.result);
+        // The Compare tab is visible if any of these two members is set.
+        // This is useful since sometimes the expected result is null and 
+        // the user wants to see it also in the UI.
+        return !result.expected && !result.result;
     },
 
     hideDiffGroup: function(result)
@@ -924,11 +932,11 @@ Firebug.FireUnitModule.TestResultTabView = domplate(Firebug.Rep,
 Firebug.FireUnitModule.ParseErrorRep = domplate(Firebug.Rep, 
 {
     tag:
-        DIV({class: "xmlInfoError"},
-            DIV({class: "xmlInfoErrorMsg"}, "$error.message"),
-            PRE({class: "xmlInfoErrorSource"}, "$error|getSource"),
+        DIV({"class": "xmlInfoError"},
+            DIV({"class": "xmlInfoErrorMsg"}, "$error.message"),
+            PRE({"class": "xmlInfoErrorSource"}, "$error|getSource"),
             BR(),
-            PRE({class: "xmlInfoSource"})
+            PRE({"class": "xmlInfoSource"})
         ),
     
     getSource: function(error) 
