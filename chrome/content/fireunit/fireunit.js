@@ -144,6 +144,9 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
         if ( !server ) {
             server = new nsHttpServer();
             server.start( serverPort );
+
+            if (FBTrace.DBG_FIREUNIT)
+                FBTrace.sysout("fireunit.getServer HTTP server started");
         }
         return server;
     }
@@ -174,17 +177,17 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
             .getFileFromURLSpec(aPath);
     }
 
-    function canChrome(){
-        var location = this.win.wrappedJSObject.location,
+    function canChrome(win){
+        var location = win.wrappedJSObject.location,
             protocol = location.protocol;
 
         return protocol === "chrome:" ||
             location.toString().indexOf("http://localhost:" + serverPort) == 0;
     }
 
-    function canServer(){
-        return canChrome() ||
-            this.win.wrappedJSObject.location.protocol === "file:";
+    function canServer(win) {
+        return canChrome(win) || 
+            win.wrappedJSObject.location.protocol === "file:";
     }
 
     function getTestURL(test) {
@@ -199,13 +202,22 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
           cache.evictEntries(Ci.nsICache.STORE_ON_DISK);
           cache.evictEntries(Ci.nsICache.STORE_IN_MEMORY);
 
-          if ( canServer() ) {
-            var file = chromeToPath( this.win.wrappedJSObject.location + "" );
+          var win = this.win.wrappedJSObject;
+
+          // The server is started if it's allowed and only if the 
+          // protocol is *not* already http.  
+          if ( canServer(this.win) && win.location.protocol !== "http:") {
+            var file = chromeToPath( win.location + "" );
             var dir = file.parent;
 
-            getServer().registerDirectory( "/test" + winID + "/", dir );
+            var path = "/test" + winID + "/";
+            getServer().registerDirectory(path, dir);
 
-            this.win.wrappedJSObject.location = getTestURL(file.leafName); 
+            if (FBTrace.DBG_FIREUNIT)
+              FBTrace.sysout("fireunit.forceHttp server directory registered : " 
+                + dir.path + " => " + path);
+
+            win.location = getTestURL(file.leafName); 
             return false;
           }
 
@@ -245,7 +257,7 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
           return id;
         },
         chromeID: function( id ) {
-          if ( typeof id == "string" && canChrome() )
+          if ( typeof id == "string" && canChrome(this.win) )
             return document.getElementById( id );
         },
         ok: function( pass, msg ) {
@@ -323,11 +335,14 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
         panel: function( name ) {
           // xxxHonza: in case of net panel tests the URL doesn't have to come from chrome,
           // but also from local host.
-          if ( canChrome() )
+          if ( canChrome(this.win) )
               return this.context.getPanel( name ).panelNode;
         },
         // HTTP Server
         registerPathHandler: function(path, handler) {
+            if (!canServer(this.win))
+                return;
+
             return getServer().registerPathHandler(path, function(metadata, response) {
                 try {
                     handler.apply(null, [metadata, response]);
@@ -336,34 +351,15 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
                     FBTrace.sysout("fireunit.registerPathHandler EXCEPTION", err);
                 }
             });
+        },
+        getBrowser: function() {
+            return canChrome(this.win) ? window : null;
         }
     };
 
-    // Only expose these if we're in a chrome-accessible area
-    if ( canChrome() ) {
-
-        // Getters for access to Firebug's internal APIs.
-        fireunit.__defineGetter__("Firebug", function() {
-            return Firebug;
-        });
-
-        fireunit.__defineGetter__("FBL", function() {
-            return FBL;
-        });
-
-        fireunit.__defineGetter__("FirebugChrome", function() {
-            return FirebugChrome;
-        });
-
-        fireunit.__defineGetter__("FBTrace", function() {
-            return FBTrace;
-        });
-
-        fireunit.__defineGetter__("FirebugContext", function() {
-            return FirebugContext;
-        });
-
-    }
+    fireunit.__defineGetter__("browser", function() {
+      return canChrome(this.win) ? window : null;
+    });
 
     return fireunit;
 }();
