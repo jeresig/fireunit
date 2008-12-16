@@ -1,4 +1,0 @@
-This is 
-multiline 
-response 
-for issue601.htm

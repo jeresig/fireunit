@@ -1,2 +1,0 @@
-<html><head/><body><h1>Response for Issue700.html</h2></body</html>
-
