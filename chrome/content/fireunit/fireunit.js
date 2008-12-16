@@ -71,6 +71,10 @@ Firebug.FireUnitModule = extend(Firebug.Module,
         // Inject "fireunit" object into the test page. This object 
         // provides all necessary APIs to write a unit test.
         win.wrappedJSObject.fireunit = new this.Fireunit(context, win);
+
+        if (FBTrace.DBG_FIREUNIT)
+            FBTrace.sysout("fireunit.FireUnitModule.watchWindow: fireunit initialized for: " +
+                win.wrappedJSObject.location.href);
     },
 
     unWatchWindow: function()
@@ -299,6 +303,17 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
 
           var doc = node.ownerDocument, event = doc.createEvent("MouseEvents");
           event.initMouseEvent("click", true, true, doc.defaultView, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+          return node.dispatchEvent( event );
+        },
+        mouseDown: function( node ){
+          node = this.id( node );
+
+          if ( node.click ) {
+            return node.click();
+          }
+
+          var doc = node.ownerDocument, event = doc.createEvent("MouseEvents");
+          event.initMouseEvent("mousedown", true, true, doc.defaultView, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
           return node.dispatchEvent( event );
         },
         focus: function( node ){
