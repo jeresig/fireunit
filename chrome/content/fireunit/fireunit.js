@@ -128,76 +128,7 @@ Firebug.FireUnitModule = extend(Firebug.Module,
  * This object is injected into the test page as "fireunit" in order to 
  * provider necessary APIs for test implementation.
  */
-Firebug.FireUnitModule.Fireunit = function(context, win)
-{
-    this.context = context;
-    this.win = win;
-}
-
-Firebug.FireUnitModule.Fireunit.prototype = function() 
-{
-    var queue = [];
-
-    function addToQueue(fn) {
-    }
-
-    function removeFromQueue() {
-    }
-
-    function getServer() {
-        if ( !server ) {
-            server = new nsHttpServer();
-            server.start( serverPort );
-
-            if (FBTrace.DBG_FIREUNIT)
-                FBTrace.sysout("fireunit.getServer HTTP server started");
-        }
-        return server;
-    }
-
-    function chromeToPath(aPath) {
-       if (!aPath || !(/^chrome:/.test(aPath)))
-          return urlToPath( aPath );
-
-       var ios = Cc['@mozilla.org/network/io-service;1'].getService(Ci["nsIIOService"]);
-       var uri = ios.newURI(aPath, "UTF-8", null);
-       var cr = Cc['@mozilla.org/chrome/chrome-registry;1'].getService(Ci["nsIChromeRegistry"]);
-       var rv = cr.convertChromeURL(uri).spec;
-
-       if (/^file:/.test(rv))
-          rv = urlToPath(rv);
-       else
-          rv = urlToPath("file://"+rv);
-
-       return rv;
-    }
-
-    function urlToPath(aPath) {
-        if (!aPath || !/^file:/.test(aPath)) 
-            return;
-    
-        return Cc["@mozilla.org/network/protocol;1?name=file"]
-            .createInstance(Ci.nsIFileProtocolHandler)
-            .getFileFromURLSpec(aPath);
-    }
-
-    function canChrome(win){
-        var location = win.wrappedJSObject.location,
-            protocol = location.protocol;
-
-        return protocol === "chrome:" ||
-            location.toString().indexOf("http://localhost:" + serverPort) == 0;
-    }
-
-    function canServer(win) {
-        return canChrome(win) || 
-            win.wrappedJSObject.location.protocol === "file:";
-    }
-
-    function getTestURL(test) {
-        return "http://localhost:" + serverPort + "/test" + winID + "/" + test;
-    }
-
+Firebug.FireUnitModule.Fireunit = function(context, win){
     var winID = uuid++;
 
     // Define fireunit APIs.
@@ -206,11 +137,11 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
           cache.evictEntries(Ci.nsICache.STORE_ON_DISK);
           cache.evictEntries(Ci.nsICache.STORE_IN_MEMORY);
 
-          var win = this.win.wrappedJSObject;
+          var win = win.wrappedJSObject;
 
           // The server is started if it's allowed and only if the 
           // protocol is *not* already http.  
-          if ( canServer(this.win) && win.location.protocol !== "http:") {
+          if ( canServer(win) && win.location.protocol !== "http:") {
             var file = chromeToPath( win.location + "" );
             var dir = file.parent;
 
@@ -232,18 +163,18 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
           queueResults = [];
 
           if (FBTrace.DBG_FIREUNIT)
-            FBTrace.sysout("fireunit.runTests " + this.win.wrappedJSObject.location, testQueue);
+            FBTrace.sysout("fireunit.runTests " + win.wrappedJSObject.location, testQueue);
 
           this.testDone();
         },
         testDone: function() {
           if (FBTrace.DBG_FIREUNIT)
-            FBTrace.sysout("fireunit.testDone: " + this.win.wrappedJSObject.location);
+            FBTrace.sysout("fireunit.testDone: " + win.wrappedJSObject.location);
 
-          var panel = this.context.getPanel(panelName);
+          var panel = context.getPanel(panelName);
           if ( testQueue ) {
             if ( testQueue.length ) {
-              this.win.wrappedJSObject.location = getTestURL(testQueue.shift());
+              win.wrappedJSObject.location = getTestURL(testQueue.shift());
             } else {
               panel.appendResults(queueResults);
               panel.appendSummary();
@@ -256,34 +187,31 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
         },
         id: function( id ) {
           if ( typeof id == "string" ) {
-            return this.win.document.getElementById( id );
+            return win.document.getElementById( id );
           }
           return id;
         },
         chromeID: function( id ) {
-          if ( typeof id == "string" && canChrome(this.win) )
+          if ( typeof id == "string" && canChrome(win) )
             return document.getElementById( id );
         },
         ok: function( pass, msg ) {
-          var result = new Firebug.FireUnitModule.TestResult(this.win, pass, msg);
+          var result = new Firebug.FireUnitModule.TestResult(win, pass, msg);
           if ( testQueue ) {
             queueResults.push(result);
           } else {
-            var panel = this.context.getPanel(panelName);
+            var panel = context.getPanel(panelName);
             panel.appendResults([result]);
           }
         },
-        test: function( name, fn ) {
-          addToQueue( fn );
-        },
         compare: function( expected, actuall, msg ) {
           var pass = expected == actuall;
-          var result = new Firebug.FireUnitModule.TestResult(this.win, pass, msg, 
+          var result = new Firebug.FireUnitModule.TestResult(win, pass, msg, 
               expected, actuall);
           if ( testQueue ) {
             queueResults.push(result);
           } else {
-            var panel = this.context.getPanel(panelName);
+            var panel = context.getPanel(panelName);
             panel.appendResults([result]);
           }
         },
@@ -350,12 +278,12 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
         panel: function( name ) {
           // xxxHonza: in case of net panel tests the URL doesn't have to come from chrome,
           // but also from local host.
-          if ( canChrome(this.win) )
-              return this.context.getPanel( name ).panelNode;
+          if ( canChrome(win) )
+              return context.getPanel( name ).panelNode;
         },
         // HTTP Server
         registerPathHandler: function(path, handler) {
-            if (!canServer(this.win))
+            if (!canServer(win))
                 return;
 
             return getServer().registerPathHandler(path, function(metadata, response) {
@@ -368,16 +296,70 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
             });
         },
         getBrowser: function() {
-            return canChrome(this.win) ? window : null;
+            return canChrome(win) ? window : null;
         }
     };
 
     fireunit.__defineGetter__("browser", function() {
-      return canChrome(this.win) ? window : null;
+      return canChrome(win) ? window : null;
     });
 
-    return fireunit;
-}();
+    this.__proto__ = fireunit;
+};
+
+function getServer() {
+    if ( !server ) {
+        server = new nsHttpServer();
+        server.start( serverPort );
+
+        if (FBTrace.DBG_FIREUNIT)
+            FBTrace.sysout("fireunit.getServer HTTP server started");
+    }
+    return server;
+}
+
+function chromeToPath(aPath) {
+   if (!aPath || !(/^chrome:/.test(aPath)))
+      return urlToPath( aPath );
+
+   var ios = Cc['@mozilla.org/network/io-service;1'].getService(Ci["nsIIOService"]);
+   var uri = ios.newURI(aPath, "UTF-8", null);
+   var cr = Cc['@mozilla.org/chrome/chrome-registry;1'].getService(Ci["nsIChromeRegistry"]);
+   var rv = cr.convertChromeURL(uri).spec;
+
+   if (/^file:/.test(rv))
+      rv = urlToPath(rv);
+   else
+      rv = urlToPath("file://"+rv);
+
+   return rv;
+}
+
+function urlToPath(aPath) {
+    if (!aPath || !/^file:/.test(aPath)) 
+        return;
+
+    return Cc["@mozilla.org/network/protocol;1?name=file"]
+        .createInstance(Ci.nsIFileProtocolHandler)
+        .getFileFromURLSpec(aPath);
+}
+
+function canChrome(win){
+    var location = win.wrappedJSObject.location,
+        protocol = location.protocol;
+
+    return protocol === "chrome:" ||
+        location.toString().indexOf("http://localhost:" + serverPort) == 0;
+}
+
+function canServer(win) {
+    return canChrome(win) || 
+        win.wrappedJSObject.location.protocol === "file:";
+}
+
+function getTestURL(test) {
+    return "http://localhost:" + serverPort + "/test" + winID + "/" + test;
+}
 
 // Localization
 //-----------------------------------------------------------------------------
