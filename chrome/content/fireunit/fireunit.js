@@ -289,7 +289,7 @@ Firebug.FireUnitModule.Fireunit.prototype = function()
         },
         reCompare: function( expected, result, msg ) {
           if (  RegExp( expected ).test( result ) ) {
-            return this.compare( expected, expected, msg );
+            return this.compare( result, result, msg );
           } else {
             return this.compare( expected, result, msg );
           }
@@ -740,7 +740,7 @@ Firebug.FireUnitModule.TestResultTabView = domplate(Firebug.Rep,
                                 lineNumber: "$stack.lineNumber"},
                                 "$stack.fileName"),
                             SPAN("&nbsp;"),
-                            SPAN("(", "$stack.lineNumber", ")")
+                            SPAN("(", $FU_STR("fireunit.test.Line"), " $stack.lineNumber", ")")
                         )
                     )
                 )
@@ -873,7 +873,7 @@ Firebug.FireUnitModule.TestResultTabView = domplate(Firebug.Rep,
             if (result.expected != result.result) {
                 var diffNode = getElementByClass(viewBody, "testResultDiff");
                 var diffText = diffString(clean(result.expected), clean(result.result));
-                insertWrappedText(diffText, diffNode, true);
+		diffNode.innerHTML = diffText;
             }
         }
     },
