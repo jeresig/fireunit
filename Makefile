@@ -1,6 +1,6 @@
 
 all:
-	zip -r firetest.xpi *
+	zip -r fireunit-`cat install.rdf|grep em:version|sed "s/.*>\(.*\)<.*/\1/"`.xpi *
 
 clean:
-	rm -rf firetest.xpi
+	rm -rf fireunit*.xpi
