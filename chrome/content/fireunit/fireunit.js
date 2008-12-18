@@ -18,6 +18,7 @@ var queueResults = [];      // test results collected
 var server;                 // HTTP local server
 var uuid = 1;
 var serverPort = 7080;
+var winID;
 
 // Services
 var cache = Cc["@mozilla.org/network/cache-service;1"].getService(Ci.nsICacheService);
@@ -128,8 +129,8 @@ Firebug.FireUnitModule = extend(Firebug.Module,
  * This object is injected into the test page as "fireunit" in order to 
  * provider necessary APIs for test implementation.
  */
-Firebug.FireUnitModule.Fireunit = function(context, win){
-    var winID = uuid++;
+Firebug.FireUnitModule.Fireunit = function(context, win) {
+    win = win.wrappedJSObject;
 
     // Define fireunit APIs.
     var fireunit = {
@@ -137,14 +138,13 @@ Firebug.FireUnitModule.Fireunit = function(context, win){
           cache.evictEntries(Ci.nsICache.STORE_ON_DISK);
           cache.evictEntries(Ci.nsICache.STORE_IN_MEMORY);
 
-          var win = win.wrappedJSObject;
-
           // The server is started if it's allowed and only if the 
           // protocol is *not* already http.  
           if ( canServer(win) && win.location.protocol !== "http:") {
             var file = chromeToPath( win.location + "" );
             var dir = file.parent;
 
+            winID = uuid++;
             var path = "/test" + winID + "/";
             getServer().registerDirectory(path, dir);
 
@@ -152,7 +152,7 @@ Firebug.FireUnitModule.Fireunit = function(context, win){
               FBTrace.sysout("fireunit.forceHttp server directory registered : " 
                 + dir.path + " => " + path);
 
-            win.location = getTestURL(file.leafName); 
+            win.location = getTestURL(winID, file.leafName); 
             return false;
           }
 
@@ -163,18 +163,18 @@ Firebug.FireUnitModule.Fireunit = function(context, win){
           queueResults = [];
 
           if (FBTrace.DBG_FIREUNIT)
-            FBTrace.sysout("fireunit.runTests " + win.wrappedJSObject.location, testQueue);
+            FBTrace.sysout("fireunit.runTests " + win.location, testQueue);
 
           this.testDone();
         },
         testDone: function() {
           if (FBTrace.DBG_FIREUNIT)
-            FBTrace.sysout("fireunit.testDone: " + win.wrappedJSObject.location);
+            FBTrace.sysout("fireunit.testDone: " + win.location);
 
           var panel = context.getPanel(panelName);
           if ( testQueue ) {
             if ( testQueue.length ) {
-              win.wrappedJSObject.location = getTestURL(testQueue.shift());
+              win.location = getTestURL(winID, testQueue.shift());
             } else {
               panel.appendResults(queueResults);
               panel.appendSummary();
@@ -341,20 +341,20 @@ function urlToPath(aPath) {
         .getFileFromURLSpec(aPath);
 }
 
-function canChrome(win){
-    var location = win.wrappedJSObject.location,
+function canChrome(win) {
+    var location = win.location,
         protocol = location.protocol;
 
     return protocol === "chrome:" ||
-        location.toString().indexOf("http://localhost:" + serverPort) == 0;
+        location.toString().indexOf("http://localhost:" + serverPort) === 0;
 }
 
 function canServer(win) {
     return canChrome(win) || 
-        win.wrappedJSObject.location.protocol === "file:";
+        win.location.protocol === "file:";
 }
 
-function getTestURL(test) {
+function getTestURL(winID, test) {
     return "http://localhost:" + serverPort + "/test" + winID + "/" + test;
 }
 
@@ -957,7 +957,7 @@ Firebug.FireUnitModule.ParseErrorRep = domplate(Firebug.Rep,
  */
 Firebug.FireUnitModule.TestResult = function(win, pass, msg, expected, result)
 {
-    var location = win.wrappedJSObject.location.href;
+    var location = win.location.href;
     this.fileName = location.substr(location.lastIndexOf("/") + 1);
 
     this.pass = pass ? true : false;
