@@ -58,10 +58,7 @@ Firebug.FireUnitModule = extend(Firebug.Module,
 
     showPanel: function(browser, panel) 
     {
-        // xxxHonza: there is one button in toolbar that isn't working yet.
-        var isHwPanel = panel && panel.name == panelName;
-        var hwButtons = browser.chrome.$("fbFireUnitButtons");
-        collapse(hwButtons, !isHwPanel);
+        // xxxHonza: no buttons for now.
     },
 
     watchWindow: function(context, win)
