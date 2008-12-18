@@ -294,9 +294,6 @@ Firebug.FireUnitModule.Fireunit = function(context, win){
                     FBTrace.sysout("fireunit.registerPathHandler EXCEPTION", err);
                 }
             });
-        },
-        getBrowser: function() {
-            return canChrome(win) ? window : null;
         }
     };
 
