@@ -511,9 +511,12 @@ Firebug.FireUnitModule.TestResultRep = domplate(Firebug.Rep,
             TR({"class": "testResultRow", _repObject: "$result",
                 $testError: "$result|isError",
                 $testOK: "$result|isOK"},
-                    TD({"class": "testResultCol", width: "100%"},
+                TD({"class": "testResultCol", width: "100%"},
                     DIV({"class": "testResultMessage testResultLabel"},
                         "$result|getMessage"
+                    ),
+                    DIV({"class": "testResultFullMessage testResultMessage testResultLabel"},
+                        "$result.msg"
                     )
                 ),
                 TD({"class": "testResultCol"},
@@ -549,7 +552,7 @@ Firebug.FireUnitModule.TestResultRep = domplate(Firebug.Rep,
 
     getMessage: function(result)
     {
-        return result.msg;
+        return cropString(result.msg, 100);
     },
 
     isError: function(result)
