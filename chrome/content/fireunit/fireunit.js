@@ -467,6 +467,14 @@ FireUnitPanel.prototype = extend(Firebug.Panel,
         var row = Firebug.FireUnitModule.TestResultRep.resultTag.insertRows(
             {results: queueResults}, tbody.lastChild ? tbody.lastChild : tbody)[0];
 
+        for (var i = 0; i < queueResults.length; ++i)
+        {
+            var result = queueResults[i];
+            row.repObject = result;
+            result.row = row;
+            row = row.nextSibling;
+        }
+
         scrollToBottom(this.panelNode);
     },
 
@@ -627,7 +635,7 @@ Firebug.FireUnitModule.TestResultRep = domplate(Firebug.Rep,
     {
         return testResult;
     },
-    
+
     getContextMenuItems: function(testResult, target, context)
     {
         // xxxHonza: The "copy" command shouldn't be there for now.
@@ -635,9 +643,23 @@ Firebug.FireUnitModule.TestResultRep = domplate(Firebug.Rep,
         FBL.eraseNode(popup);
 
         var items = [];
-        
+
         if (testResult.stack)
         {
+            items.push({ 
+              label: $FU_STR("fireunit.item.Copy"), 
+              nol10n: true, 
+              command: bindFixed(this.onCopy, this, testResult) 
+            });
+
+            items.push({ 
+              label: $FU_STR("fireunit.item.Copy_All"), 
+              nol10n: true, 
+              command: bindFixed(this.onCopyAll, this, testResult) 
+            });
+
+            items.push("-");
+
             items.push({ 
               label: $FU_STR("fireunit.item.View_Source"), 
               nol10n: true, 
@@ -647,13 +669,44 @@ Firebug.FireUnitModule.TestResultRep = domplate(Firebug.Rep,
 
         return items;
     },
-    
+
     // Context menu commands
     onViewSource: function(testResult)
     {
         var stackFrame = testResult.stack[0];
         FirebugContext.chrome.select(new SourceLink(stackFrame.fileName, 
             stackFrame.lineNumber, "js"));
+    },
+
+    onCopy: function(testResult)
+    {
+        copyToClipboard(testResult.msg);
+    },
+
+    onCopyAll: function(testResult)
+    {
+        var row = testResult.row;
+        var tbody = getAncestorByClass(testResult.row, "testTable").firstChild;
+        var passLabel = $FU_STR("fireunit.label.Pass");
+        var failLabel = $FU_STR("fireunit.label.Fail");
+
+        var text = "";
+        for (var row = tbody.firstChild; row; row = row.nextSibling) {
+            if (hasClass(row, "testResultRow") && row.repObject) {
+                text += (hasClass(row, "testError") ? failLabel : passLabel); 
+                text += ": " + row.repObject.msg;
+                text += ", " + row.repObject.fileName + "\n";
+            }
+        }
+
+        var summary = getElementByClass(tbody, "testResultSummaryRow");
+        if (summary) {
+            summary = summary.firstChild;
+            text += summary.childNodes[0].textContent + ", " +
+                summary.childNodes[1].textContent;
+        }
+
+        copyToClipboard(text);
     },
 });
 
