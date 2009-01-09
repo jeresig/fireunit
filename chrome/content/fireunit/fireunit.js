@@ -22,6 +22,9 @@ var winID;
 
 // Services
 var cache = Cc["@mozilla.org/network/cache-service;1"].getService(Ci.nsICacheService);
+var prefs = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch2);
+var PrefService = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefService);
+
 
 // Module implementation.
 //-----------------------------------------------------------------------------
@@ -291,6 +294,13 @@ Firebug.FireUnitModule.Fireunit = function(context, win) {
                     FBTrace.sysout("fireunit.registerPathHandler EXCEPTION", err);
                 }
             });
+        },
+        // Enable special privileges for pages from http://localhost:7080 and file://
+        privilege: function(enable) {
+            if (enable)
+                Firebug.FireUnitModule.Privilege.enable();
+            else 
+                Firebug.FireUnitModule.Privilege.disable();
         }
     };
 
@@ -442,10 +452,18 @@ FireUnitPanel.prototype = extend(Firebug.Panel,
 
     getOptionsMenuItems: function(context)
     {
-        return [
-            this.optionMenu($FU_STR("fireunit.option.Passing_Tests"), "fireunit.showPass"),
-            this.optionMenu($FU_STR("fireunit.option.Failing_Tests"), "fireunit.showFail")
-        ];
+        var items = [];
+        items.push(this.optionMenu($FU_STR("fireunit.option.Passing Tests"), "fireunit.showPass"));
+        items.push(this.optionMenu($FU_STR("fireunit.option.Failing Tests"), "fireunit.showFail"));
+        items.push("-");
+        items.push({
+            label: $FU_STR("fireunit.option.Enable Privileges"),
+            nol10n: true,
+            type: "checkbox",
+            checked: Firebug.FireUnitModule.Privilege.isEnabled(),
+            command: bindFixed(this.onPrivileges, this)
+        });
+        return items;
     },
 
     optionMenu: function(label, option)
@@ -458,6 +476,11 @@ FireUnitPanel.prototype = extend(Firebug.Panel,
             checked: value,
             command: bindFixed(Firebug.setPref, this, Firebug.prefDomain, option, !value)
         };
+    },
+
+    onPrivileges: function()
+    {
+        Firebug.FireUnitModule.Privilege.toggle();
     },
 
     appendResults: function(queueResults)
@@ -685,7 +708,6 @@ Firebug.FireUnitModule.TestResultRep = domplate(Firebug.Rep,
 
     onCopyAll: function(testResult)
     {
-        var row = testResult.row;
         var tbody = getAncestorByClass(testResult.row, "testTable").firstChild;
         var passLabel = $FU_STR("fireunit.label.Pass");
         var failLabel = $FU_STR("fireunit.label.Fail");
@@ -1030,6 +1052,136 @@ Firebug.FireUnitModule.TestResult = function(win, pass, msg, expected, result)
         this.stack.push({fileName:fileName, lineNumber:lineNumber});
     }
 }
+
+// Privileges
+//-----------------------------------------------------------------------------
+
+/**
+ * Manage preferences for page privileges.
+ */
+Firebug.FireUnitModule.Privilege = 
+{
+    prefDomain: "capability.principal.codebase.",
+    privileges: "UniversalPreferencesWrite UniversalXPConnect UniversalBrowserWrite " +
+        "UniversalPreferencesRead UniversalBrowserRead",
+    rePref: /p[0-9]+.id/,
+
+    enable: function()
+    {
+        if (FBTrace.DBG_FIREUNIT)
+            FBTrace.sysout("fireunit.Privilege.enable");
+
+        // This must be set so, the other prefs works.
+        Firebug.setPref("signed.applets", "codebase_principal_support", true);
+
+        // See bug: #425880
+        Firebug.setPref("security.fileuri", "strict_origin_policy", false);
+
+        this.enablePrivilegeForUri("http://localhost:7080");
+        this.enablePrivilegeForUri("file://");
+    },
+
+    disable: function()
+    {
+        if (FBTrace.DBG_FIREUNIT)
+            FBTrace.sysout("fireunit.Privilege.disable");
+
+        prefs.clearUserPref("signed.applets.codebase_principal_support");
+        prefs.clearUserPref("security.fileuri.strict_origin_policy");
+
+        this.disablePrivilegeForUri("http://localhost:7080");
+        this.disablePrivilegeForUri("file://");
+    },
+
+    toggle: function()
+    {
+        if (this.isEnabled())
+            this.disable();
+        else
+            this.enable();
+    },
+
+    isEnabled: function()
+    {
+        if (!Firebug.getPref("signed.applets", "codebase_principal_support"))
+            return false;
+
+        if (Firebug.getPref("security.fileuri", "strict_origin_policy"))
+            return false;
+
+        if (!this.isEnabledForUri("http://localhost:7080"))
+            return false;
+
+        if (!this.isEnabledForUri("file://"))
+            return false;
+
+        return true;
+    },
+
+    enablePrivilegeForUri: function(uri)
+    {
+        for (var i=0; true; i++)
+        {
+            try {
+                var url = prefs.getCharPref(this.prefDomain + "p" + i + ".id");
+                if (url == uri)
+                    break;
+            }
+            catch (err) {
+                prefs.setCharPref(this.prefDomain + "p" + i + ".granted", "UniversalXPConnect");
+                prefs.setCharPref(this.prefDomain + "p" + i + ".id", uri);
+                prefs.setCharPref(this.prefDomain + "p" + i + ".subjectName", "");
+                break;
+            }
+        }
+    },
+
+    disablePrivilegeForUri: function(uri)
+    {
+        var arrayDesc = {};
+        var branch = PrefService.getBranch(this.prefDomain);
+        var children = branch.getChildList("", arrayDesc);
+        for (var i = 0; i < children.length; i++) 
+        {
+            var p = children[i];
+            var m = this.rePref.exec(p);
+            if (!m)
+                continue;
+
+            var url = branch.getCharPref(p);
+            if (url != uri)
+                continue;
+
+            var parts = p.split(".");
+            var prefNames = [".id", ".granted", ".subjectName"];
+            for (var a in prefNames) {
+                try {
+                    branch.clearUserPref(parts[0] + prefNames[a]);
+                } 
+                catch (err) {
+                }
+            }
+        }
+    },
+
+    isEnabledForUri: function(uri)
+    {
+        for (var i=0; true; i++)
+        {
+            try {
+                var url = prefs.getCharPref(this.prefDomain + "p" + i + ".id");
+                if (url == uri) {
+                    if (prefs.getCharPref(this.prefDomain + "p" + i + ".granted"))
+                        return true;
+                }
+            }
+            catch (err) {
+                break;
+            }
+        }
+        return false;
+    }
+};
 
 // Utils
 //-----------------------------------------------------------------------------
