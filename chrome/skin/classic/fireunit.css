@@ -12,6 +12,7 @@
 
 .testResultRow {
     background: white;
+    height:17px;
 }
 
 .testResultRow:hover {
