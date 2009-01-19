@@ -19,6 +19,8 @@ var server;                 // HTTP local server
 var uuid = 1;
 var serverPort = 7080;
 var winID;
+var testTimeoutID = 0;     // Timeout ID for breaking stuck tests.
+var testTimeout = 0;       // Disabled by default. Must be set from within a test or user preferences.
 
 // Services
 var cache = Cc["@mozilla.org/network/cache-service;1"].getService(Ci.nsICacheService);
@@ -42,6 +44,9 @@ Firebug.FireUnitModule = extend(Firebug.Module,
 
         // Add listener for log customization
         Firebug.TraceModule.addListener(this);
+
+        // Get time for break timeout from preferences.
+        testTimeout = Firebug.getPref(Firebug.prefDomain, "fireunit.testTimeout");
     },
 
     shutdown: function() 
@@ -66,16 +71,37 @@ Firebug.FireUnitModule = extend(Firebug.Module,
 
     watchWindow: function(context, win)
     {
-        if (win.wrappedJSObject && win.wrappedJSObject.fireunit)
+        win = win.wrappedJSObject;
+        if (win && win.fireunit)
             return;
 
         // Inject "fireunit" object into the test page. This object 
         // provides all necessary APIs to write a unit test.
-        win.wrappedJSObject.fireunit = new this.Fireunit(context, win);
+        win.fireunit = new this.Fireunit(context, win);
 
         if (FBTrace.DBG_FIREUNIT)
             FBTrace.sysout("fireunit.FireUnitModule.watchWindow: fireunit initialized for: " +
-                win.wrappedJSObject.location.href);
+                win.location.href);
+
+        if (testQueue) {
+            // Start test-timeout that launches next test if the current one freezes.
+            // This allows to continue the current test-suite (testQueue).
+            // The timeout is registered after the test page is loaded, which allows
+            // to change the timeout value from within the test page.
+            // If testTimeout is set to 0 (default value), the functionality is disabled.
+            win.addEventListener("load", function() {
+                if (win.fireunit.testTimeout) {
+                    testTimeoutID = setTimeout(function() {
+                        if (FBTrace.DBG_FIREUNIT) 
+                            FBTrace.sysout("fireunit.testTimeout TEST FAILED: " + win.location);
+
+                        win.fireunit.ok(false, $FU_STR("fireunit.label.Timeout") + " (" + 
+                            formatTime(win.fireunit.testTimeout) + "): " + win.location);
+                        win.fireunit.testDone();
+                    }, win.fireunit.testTimeout);
+                }
+            }, true);
+        } 
     },
 
     unWatchWindow: function()
@@ -130,10 +156,9 @@ Firebug.FireUnitModule = extend(Firebug.Module,
  * provider necessary APIs for test implementation.
  */
 Firebug.FireUnitModule.Fireunit = function(context, win) {
-    win = win.wrappedJSObject;
-
     // Define fireunit APIs.
     var fireunit = {
+        testTimeout: testTimeout,
         forceHttp: function() {
           cache.evictEntries(Ci.nsICache.STORE_ON_DISK);
           cache.evictEntries(Ci.nsICache.STORE_IN_MEMORY);
@@ -149,7 +174,7 @@ Firebug.FireUnitModule.Fireunit = function(context, win) {
             getServer().registerDirectory(path, dir);
 
             if (FBTrace.DBG_FIREUNIT)
-              FBTrace.sysout("fireunit.forceHttp server directory registered : " 
+              FBTrace.sysout("fireunit.forceHttp server directory registered: " 
                 + dir.path + " => " + path);
 
             win.location = getTestURL(winID, file.leafName); 
@@ -170,6 +195,12 @@ Firebug.FireUnitModule.Fireunit = function(context, win) {
         testDone: function() {
           if (FBTrace.DBG_FIREUNIT)
             FBTrace.sysout("fireunit.testDone: " + win.location);
+
+          // Test is done so, cleare break-timeout.
+          if (testTimeoutID) {
+            clearTimeout(testTimeoutID);
+            testTimeoutID = 0;
+          }
 
           var panel = context.getPanel(panelName);
           if ( testQueue ) {
@@ -380,7 +411,7 @@ function $FU_STR(name)
     {
         if (FBTrace.DBG_FIREUNIT)
         {
-            FBTrace.sysout("fireunit.Missing translation for: " + name + "\n");
+            FBTrace.sysout("fireunit.Missing translation for: " + name);
             FBTrace.sysout("fireunit.getString FAILS ", err);
         }
     }
