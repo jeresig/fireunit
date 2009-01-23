@@ -21,6 +21,7 @@ var serverPort = 7080;
 var winID;
 var testTimeoutID = 0;     // Timeout ID for breaking stuck tests.
 var testTimeout = 0;       // Disabled by default. Must be set from within a test or user preferences.
+var basePath;              // Base URI path (from where tests should be loaded).
 
 // Services
 var cache = Cc["@mozilla.org/network/cache-service;1"].getService(Ci.nsICacheService);
@@ -163,6 +164,9 @@ Firebug.FireUnitModule.Fireunit = function(context, win) {
           cache.evictEntries(Ci.nsICache.STORE_ON_DISK);
           cache.evictEntries(Ci.nsICache.STORE_IN_MEMORY);
 
+          var index = win.location.toString().lastIndexOf("/");
+          basePath = win.location.toString().substr(0, index+1);
+
           // The server is started if it's allowed and only if the 
           // protocol is *not* already http.  
           if ( canServer(win) && win.location.protocol !== "http:") {
@@ -171,13 +175,14 @@ Firebug.FireUnitModule.Fireunit = function(context, win) {
 
             winID = uuid++;
             var path = "/test" + winID + "/";
+            basePath = "http://localhost:" + serverPort + path;
             getServer().registerDirectory(path, dir);
 
             if (FBTrace.DBG_FIREUNIT)
               FBTrace.sysout("fireunit.forceHttp server directory registered: " 
-                + dir.path + " => " + path);
+                + dir.path + " => " + basePath);
 
-            win.location = getTestURL(winID, file.leafName); 
+            win.location = getTestURL(basePath, file.leafName); 
             return false;
           }
 
@@ -196,7 +201,7 @@ Firebug.FireUnitModule.Fireunit = function(context, win) {
           if (FBTrace.DBG_FIREUNIT)
             FBTrace.sysout("fireunit.testDone: " + win.location);
 
-          // Test is done so, cleare break-timeout.
+          // Test is done so, clear the break-timeout.
           if (testTimeoutID) {
             clearTimeout(testTimeoutID);
             testTimeoutID = 0;
@@ -205,7 +210,7 @@ Firebug.FireUnitModule.Fireunit = function(context, win) {
           var panel = context.getPanel(panelName);
           if ( testQueue ) {
             if ( testQueue.length ) {
-              win.location = getTestURL(winID, testQueue.shift());
+              win.location = getTestURL(basePath, testQueue.shift());
             } else {
               panel.appendResults(queueResults);
               panel.appendSummary();
@@ -384,16 +389,16 @@ function canChrome(win) {
         protocol = location.protocol;
 
     return protocol === "chrome:" ||
-        location.toString().indexOf("http://localhost:" + serverPort) === 0;
+        location.toString().indexOf("http://localhost:" + serverPort) === 0 ||
+        location.toString().indexOf("http://benedict/") === 0 ;
 }
 
 function canServer(win) {
-    return canChrome(win) || 
-        win.location.protocol === "file:";
+    return canChrome(win) || win.location.protocol === "file:";
 }
 
-function getTestURL(winID, test) {
-    return "http://localhost:" + serverPort + "/test" + winID + "/" + test;
+function getTestURL(base, test) {
+    return base + test;
 }
 
 // Localization
