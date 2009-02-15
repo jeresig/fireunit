@@ -383,9 +383,15 @@ FBL.ns(function() { with (FBL) {
             
             /*
              * Tests that a condition is true and outputs the results.
+             * @param {Boolean} pass Indicate if the test passed.
+             * @param {String} msg The message to display as the test result.
+             * @param {Variant} expected (Optional) The expected value.
+             * @param {Variant} actual (Optional) The actual value.
              */
-            ok: function( pass, msg ) {
-              var result = new Firebug.FireUnitModule.TestResult(win, pass, msg);
+            ok: function( pass, msg, expected, actual ) {
+              var result = (arguments.length > 2) ? 
+                                new Firebug.FireUnitModule.TestResult(win, pass, msg, expected, actual) :
+                                new Firebug.FireUnitModule.TestResult(win, pass, msg);
               if ( testQueue ) {
                 queueResults.push(result);
               } else {
@@ -1107,8 +1113,8 @@ FBL.ns(function() { with (FBL) {
                 tabCompareBody.updated = true;
                 this.compareTag.replace({result: result}, tabCompareBody, this);
     
-                this.insertXml(result.expected, getElementByClass(viewBody, "testResultExpected"));
-                this.insertXml(result.result, getElementByClass(viewBody, "testResultResult"));
+                this.insertXml(result.expected + " (" + (typeof result.expected) + ")", getElementByClass(viewBody, "testResultExpected"));
+                this.insertXml(result.result + " (" + (typeof result.result) + ")", getElementByClass(viewBody, "testResultResult"));
     
                 // The diff is generated only if there are any differences.
                 if (result.expected != result.result) {
