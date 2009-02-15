@@ -4,13 +4,13 @@
  */
 
 FBL.ns(function() { with (FBL) { 
-
+    
     //-------------------------------------------------------------------------
     // Constants
     //-------------------------------------------------------------------------
-    
+
     //for quick and easy access
-    const Cc = Components.classes,
+    const Cc = Components.classes;
     const Ci = Components.interfaces;
     const Cr = Components.results;
     
@@ -18,20 +18,12 @@ FBL.ns(function() { with (FBL) {
     const panelName     = "test";
     
     //port to use for the bundled HTTP server
-    const serverPort    = 7080;
+    const serverPort    = 7080;    
     
     //-------------------------------------------------------------------------
-    // Services Used
-    //-------------------------------------------------------------------------
+    // Shared Variables
+    //-------------------------------------------------------------------------    
     
-    var cache       = Cc["@mozilla.org/network/cache-service;1"].getService(Ci.nsICacheService),
-        prefs       = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch2),
-        PrefService = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefService);
-
-    //-------------------------------------------------------------------------
-    // FireUnit-wide Variables
-    //-------------------------------------------------------------------------
-
     var testQueue,              //test URLs to be executed
         queueResults = [],      //result of tests from testQueue
 
@@ -41,11 +33,19 @@ FBL.ns(function() { with (FBL) {
         testTimeoutID = 0,     // Timeout ID for breaking stuck tests.
         testTimeout = 0,       // Disabled by default. Must be set from within a test or user preferences.
         basePath;              // Base URI path (from where tests should be loaded).
-
+    
+    //-------------------------------------------------------------------------
+    // Services
+    //-------------------------------------------------------------------------    
+    
+    var cache       = Cc["@mozilla.org/network/cache-service;1"].getService(Ci.nsICacheService),
+        prefs       = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch2),
+        PrefService = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefService);
+        
     //-------------------------------------------------------------------------
     // Utility Functions
-    //-------------------------------------------------------------------------
-
+    //-------------------------------------------------------------------------        
+        
     /*
      * Creates a new instance of an HTTP server, starts it, and returns
      * the object representing it. If a server has already been created,
@@ -140,41 +140,12 @@ FBL.ns(function() { with (FBL) {
      */
     function clean( str ) {
         return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }
+    }  
     
     //-------------------------------------------------------------------------
-    // Localization
-    //-------------------------------------------------------------------------
+    // FireUnit Module Implementation
+    //-------------------------------------------------------------------------    
     
-    // xxxHonza: There should be APIs in lib.js to easily get localized strings 
-    // from custom bundle.
-    function $FU_STR(name)
-    {
-        try
-        {
-            return document.getElementById("strings_fireUnit").getString(name.replace(' ', '_', "g"));
-        }
-        catch (err)
-        {
-            if (FBTrace.DBG_FIREUNIT)
-            {
-                FBTrace.sysout("fireunit.Missing translation for: " + name);
-                FBTrace.sysout("fireunit.getString FAILS ", err);
-            }
-        }
-    
-        // Use only the label after last dot.
-        var index = name.lastIndexOf(".");
-        if (index > 0)
-            name = name.substr(index + 1);
-    
-        return name;
-    }
-
-    //-------------------------------------------------------------------------
-    // Firebug Module for Fireunit
-    //-------------------------------------------------------------------------
-
     /**
      * This objects represents a module of Fireunit extension. This object is 
      * responsible for injecting the "fireunit" object into a web page.
@@ -307,9 +278,9 @@ FBL.ns(function() { with (FBL) {
     }); 
     
     //-------------------------------------------------------------------------
-    // Fireunit Object
-    //-------------------------------------------------------------------------
-
+    // Fireunit Object Implementation
+    //-------------------------------------------------------------------------    
+        
     /**
      * This object is injected into the test page as "fireunit" in order to 
      * provider necessary APIs for test implementation.
@@ -577,11 +548,40 @@ FBL.ns(function() { with (FBL) {
     
         this.__proto__ = fireunit;
     };
-
+    
     //-------------------------------------------------------------------------
-    // FireUnit Panel Implementation
-    //-------------------------------------------------------------------------
+    // Localization
+    //-------------------------------------------------------------------------    
 
+    // xxxHonza: There should be APIs in lib.js to easily get localized strings 
+    // from custom bundle.
+    function $FU_STR(name)
+    {
+        try
+        {
+            return document.getElementById("strings_fireUnit").getString(name.replace(' ', '_', "g"));
+        }
+        catch (err)
+        {
+            if (FBTrace.DBG_FIREUNIT)
+            {
+                FBTrace.sysout("fireunit.Missing translation for: " + name);
+                FBTrace.sysout("fireunit.getString FAILS ", err);
+            }
+        }
+    
+        // Use only the label after last dot.
+        var index = name.lastIndexOf(".");
+        if (index > 0)
+            name = name.substr(index + 1);
+    
+        return name;
+    }
+    
+    //-------------------------------------------------------------------------
+    // Fireunit Panel Implementation
+    //-------------------------------------------------------------------------    
+    
     /**
      * This object representes a new Firebug panel that displyas list of logs 
      * (test results) coming from executed tests. The panel also implements two
@@ -707,11 +707,11 @@ FBL.ns(function() { with (FBL) {
             scrollToBottom(this.panelNode);
         }
     }); 
-    
+ 
     //-------------------------------------------------------------------------
     // Domplate Repository
-    //-------------------------------------------------------------------------
-    
+    //-------------------------------------------------------------------------    
+
     /**
      * This template represents a "test-result" that is beening displayed within
      * Fireunit's panel. Expandable and collapsible logic associated with each
@@ -918,7 +918,7 @@ FBL.ns(function() { with (FBL) {
             copyToClipboard(text);
         },
     });
-
+    
     //-----------------------------------------------------------------------------
     
     /**
@@ -1211,10 +1211,8 @@ FBL.ns(function() { with (FBL) {
         }
     });
     
-    
-    //-------------------------------------------------------------------------
     // Helper Objects
-    //-------------------------------------------------------------------------
+    //-----------------------------------------------------------------------------
     
     /**
      * This object represents a test-result.
@@ -1244,7 +1242,7 @@ FBL.ns(function() { with (FBL) {
     
     //-------------------------------------------------------------------------
     // Privileges
-    //-------------------------------------------------------------------------
+    //-------------------------------------------------------------------------    
     
     /**
      * Manage preferences for page privileges.
@@ -1371,8 +1369,8 @@ FBL.ns(function() { with (FBL) {
             }
             return false;
         }
-    };
-
+    };    
+    
     //-------------------------------------------------------------------------
     // Registration
     //-------------------------------------------------------------------------
@@ -1380,5 +1378,5 @@ FBL.ns(function() { with (FBL) {
     Firebug.registerPanel(FireUnitPanel); 
     Firebug.registerModule(Firebug.FireUnitModule); 
     Firebug.registerRep(Firebug.FireUnitModule.TestResultRep);
-
+    
 }});
