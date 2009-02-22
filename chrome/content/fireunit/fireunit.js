@@ -18,9 +18,16 @@ var queueResults = [];      // test results collected
 var server;                 // HTTP local server
 var uuid = 1;
 var serverPort = 7080;
+var winID;
+var testTimeoutID = 0;     // Timeout ID for breaking stuck tests.
+var testTimeout = 0;       // Disabled by default. Must be set from within a test or user preferences.
+var basePath;              // Base URI path (from where tests should be loaded).
 
 // Services
 var cache = Cc["@mozilla.org/network/cache-service;1"].getService(Ci.nsICacheService);
+var prefs = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch2);
+var PrefService = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefService);
+
 
 // Module implementation.
 //-----------------------------------------------------------------------------
@@ -38,6 +45,9 @@ Firebug.FireUnitModule = extend(Firebug.Module,
 
         // Add listener for log customization
         Firebug.TraceModule.addListener(this);
+
+        // Get time for break timeout from preferences.
+        testTimeout = Firebug.getPref(Firebug.prefDomain, "fireunit.testTimeout");
     },
 
     shutdown: function() 
@@ -57,24 +67,42 @@ Firebug.FireUnitModule = extend(Firebug.Module,
 
     showPanel: function(browser, panel) 
     {
-        // xxxHonza: there is one button in toolbar that isn't working yet.
-        var isHwPanel = panel && panel.name == panelName;
-        var hwButtons = browser.chrome.$("fbFireUnitButtons");
-        collapse(hwButtons, !isHwPanel);
+        // xxxHonza: no buttons for now.
     },
 
     watchWindow: function(context, win)
     {
-        if (win.wrappedJSObject && win.wrappedJSObject.fireunit)
+        win = win.wrappedJSObject;
+        if (win && win.fireunit)
             return;
 
         // Inject "fireunit" object into the test page. This object 
         // provides all necessary APIs to write a unit test.
-        win.wrappedJSObject.fireunit = new this.Fireunit(context, win);
+        win.fireunit = new this.Fireunit(context, win);
 
         if (FBTrace.DBG_FIREUNIT)
             FBTrace.sysout("fireunit.FireUnitModule.watchWindow: fireunit initialized for: " +
-                win.wrappedJSObject.location.href);
+                win.location.href);
+
+        if (testQueue) {
+            // Start test-timeout that launches next test if the current one freezes.
+            // This allows to continue the current test-suite (testQueue).
+            // The timeout is registered after the test page is loaded, which allows
+            // to change the timeout value from within the test page.
+            // If testTimeout is set to 0 (default value), the functionality is disabled.
+            win.addEventListener("load", function() {
+                if (win.fireunit.testTimeout) {
+                    testTimeoutID = setTimeout(function() {
+                        if (FBTrace.DBG_FIREUNIT) 
+                            FBTrace.sysout("fireunit.testTimeout TEST FAILED: " + win.location);
+
+                        win.fireunit.ok(false, $FU_STR("fireunit.label.Timeout") + " (" + 
+                            formatTime(win.fireunit.testTimeout) + "): " + win.location);
+                        win.fireunit.testDone();
+                    }, win.fireunit.testTimeout);
+                }
+            }, true);
+        } 
     },
 
     unWatchWindow: function()
@@ -128,16 +156,16 @@ Firebug.FireUnitModule = extend(Firebug.Module,
  * This object is injected into the test page as "fireunit" in order to 
  * provider necessary APIs for test implementation.
  */
-Firebug.FireUnitModule.Fireunit = function(context, win){
-    var winID = uuid++;
-
+Firebug.FireUnitModule.Fireunit = function(context, win) {
     // Define fireunit APIs.
     var fireunit = {
+        testTimeout: testTimeout,
         forceHttp: function() {
           cache.evictEntries(Ci.nsICache.STORE_ON_DISK);
           cache.evictEntries(Ci.nsICache.STORE_IN_MEMORY);
 
-          var win = win.wrappedJSObject;
+          var index = win.location.toString().lastIndexOf("/");
+          basePath = win.location.toString().substr(0, index+1);
 
           // The server is started if it's allowed and only if the 
           // protocol is *not* already http.  
@@ -145,14 +173,16 @@ Firebug.FireUnitModule.Fireunit = function(context, win){
             var file = chromeToPath( win.location + "" );
             var dir = file.parent;
 
+            winID = uuid++;
             var path = "/test" + winID + "/";
+            basePath = "http://localhost:" + serverPort + path;
             getServer().registerDirectory(path, dir);
 
             if (FBTrace.DBG_FIREUNIT)
-              FBTrace.sysout("fireunit.forceHttp server directory registered : " 
-                + dir.path + " => " + path);
+              FBTrace.sysout("fireunit.forceHttp server directory registered: " 
+                + dir.path + " => " + basePath);
 
-            win.location = getTestURL(file.leafName); 
+            win.location = getTestURL(basePath, file.leafName); 
             return false;
           }
 
@@ -163,18 +193,24 @@ Firebug.FireUnitModule.Fireunit = function(context, win){
           queueResults = [];
 
           if (FBTrace.DBG_FIREUNIT)
-            FBTrace.sysout("fireunit.runTests " + win.wrappedJSObject.location, testQueue);
+            FBTrace.sysout("fireunit.runTests " + win.location, testQueue);
 
           this.testDone();
         },
         testDone: function() {
           if (FBTrace.DBG_FIREUNIT)
-            FBTrace.sysout("fireunit.testDone: " + win.wrappedJSObject.location);
+            FBTrace.sysout("fireunit.testDone: " + win.location);
+
+          // Test is done so, clear the break-timeout.
+          if (testTimeoutID) {
+            clearTimeout(testTimeoutID);
+            testTimeoutID = 0;
+          }
 
           var panel = context.getPanel(panelName);
           if ( testQueue ) {
             if ( testQueue.length ) {
-              win.wrappedJSObject.location = getTestURL(testQueue.shift());
+              win.location = getTestURL(basePath, testQueue.shift());
             } else {
               panel.appendResults(queueResults);
               panel.appendSummary();
@@ -295,8 +331,12 @@ Firebug.FireUnitModule.Fireunit = function(context, win){
                 }
             });
         },
-        getBrowser: function() {
-            return canChrome(win) ? window : null;
+        // Enable special privileges for pages from http://localhost:7080 and file://
+        privilege: function(enable) {
+            if (enable)
+                Firebug.FireUnitModule.Privilege.enable();
+            else 
+                Firebug.FireUnitModule.Privilege.disable();
         }
     };
 
@@ -344,21 +384,21 @@ function urlToPath(aPath) {
         .getFileFromURLSpec(aPath);
 }
 
-function canChrome(win){
-    var location = win.wrappedJSObject.location,
+function canChrome(win) {
+    var location = win.location,
         protocol = location.protocol;
 
     return protocol === "chrome:" ||
-        location.toString().indexOf("http://localhost:" + serverPort) == 0;
+        location.toString().indexOf("http://localhost:" + serverPort) === 0 ||
+        location.toString().indexOf("http://benedict/") === 0 ;
 }
 
 function canServer(win) {
-    return canChrome(win) || 
-        win.wrappedJSObject.location.protocol === "file:";
+    return canChrome(win) || win.location.protocol === "file:";
 }
 
-function getTestURL(test) {
-    return "http://localhost:" + serverPort + "/test" + winID + "/" + test;
+function getTestURL(base, test) {
+    return base + test;
 }
 
 // Localization
@@ -376,7 +416,7 @@ function $FU_STR(name)
     {
         if (FBTrace.DBG_FIREUNIT)
         {
-            FBTrace.sysout("fireunit.Missing translation for: " + name + "\n");
+            FBTrace.sysout("fireunit.Missing translation for: " + name);
             FBTrace.sysout("fireunit.getString FAILS ", err);
         }
     }
@@ -448,10 +488,18 @@ FireUnitPanel.prototype = extend(Firebug.Panel,
 
     getOptionsMenuItems: function(context)
     {
-        return [
-            this.optionMenu($FU_STR("fireunit.option.Passing_Tests"), "fireunit.showPass"),
-            this.optionMenu($FU_STR("fireunit.option.Failing_Tests"), "fireunit.showFail")
-        ];
+        var items = [];
+        items.push(this.optionMenu($FU_STR("fireunit.option.Passing Tests"), "fireunit.showPass"));
+        items.push(this.optionMenu($FU_STR("fireunit.option.Failing Tests"), "fireunit.showFail"));
+        items.push("-");
+        items.push({
+            label: $FU_STR("fireunit.option.Enable Privileges"),
+            nol10n: true,
+            type: "checkbox",
+            checked: Firebug.FireUnitModule.Privilege.isEnabled(),
+            command: bindFixed(this.onPrivileges, this)
+        });
+        return items;
     },
 
     optionMenu: function(label, option)
@@ -466,12 +514,25 @@ FireUnitPanel.prototype = extend(Firebug.Panel,
         };
     },
 
+    onPrivileges: function()
+    {
+        Firebug.FireUnitModule.Privilege.toggle();
+    },
+
     appendResults: function(queueResults)
     {
         // Append new test results.
         var tbody = this.table.firstChild;
         var row = Firebug.FireUnitModule.TestResultRep.resultTag.insertRows(
             {results: queueResults}, tbody.lastChild ? tbody.lastChild : tbody)[0];
+
+        for (var i = 0; i < queueResults.length; ++i)
+        {
+            var result = queueResults[i];
+            row.repObject = result;
+            result.row = row;
+            row = row.nextSibling;
+        }
 
         scrollToBottom(this.panelNode);
     },
@@ -517,9 +578,12 @@ Firebug.FireUnitModule.TestResultRep = domplate(Firebug.Rep,
             TR({"class": "testResultRow", _repObject: "$result",
                 $testError: "$result|isError",
                 $testOK: "$result|isOK"},
-                    TD({"class": "testResultCol", width: "100%"},
+                TD({"class": "testResultCol", width: "100%"},
                     DIV({"class": "testResultMessage testResultLabel"},
                         "$result|getMessage"
+                    ),
+                    DIV({"class": "testResultFullMessage testResultMessage testResultLabel"},
+                        "$result.msg"
                     )
                 ),
                 TD({"class": "testResultCol"},
@@ -555,7 +619,7 @@ Firebug.FireUnitModule.TestResultRep = domplate(Firebug.Rep,
 
     getMessage: function(result)
     {
-        return result.msg;
+        return cropString(result.msg, 100);
     },
 
     isError: function(result)
@@ -630,7 +694,7 @@ Firebug.FireUnitModule.TestResultRep = domplate(Firebug.Rep,
     {
         return testResult;
     },
-    
+
     getContextMenuItems: function(testResult, target, context)
     {
         // xxxHonza: The "copy" command shouldn't be there for now.
@@ -638,9 +702,23 @@ Firebug.FireUnitModule.TestResultRep = domplate(Firebug.Rep,
         FBL.eraseNode(popup);
 
         var items = [];
-        
+
         if (testResult.stack)
         {
+            items.push({ 
+              label: $FU_STR("fireunit.item.Copy"), 
+              nol10n: true, 
+              command: bindFixed(this.onCopy, this, testResult) 
+            });
+
+            items.push({ 
+              label: $FU_STR("fireunit.item.Copy_All"), 
+              nol10n: true, 
+              command: bindFixed(this.onCopyAll, this, testResult) 
+            });
+
+            items.push("-");
+
             items.push({ 
               label: $FU_STR("fireunit.item.View_Source"), 
               nol10n: true, 
@@ -650,13 +728,43 @@ Firebug.FireUnitModule.TestResultRep = domplate(Firebug.Rep,
 
         return items;
     },
-    
+
     // Context menu commands
     onViewSource: function(testResult)
     {
         var stackFrame = testResult.stack[0];
         FirebugContext.chrome.select(new SourceLink(stackFrame.fileName, 
             stackFrame.lineNumber, "js"));
+    },
+
+    onCopy: function(testResult)
+    {
+        copyToClipboard(testResult.msg);
+    },
+
+    onCopyAll: function(testResult)
+    {
+        var tbody = getAncestorByClass(testResult.row, "testTable").firstChild;
+        var passLabel = $FU_STR("fireunit.label.Pass");
+        var failLabel = $FU_STR("fireunit.label.Fail");
+
+        var text = "";
+        for (var row = tbody.firstChild; row; row = row.nextSibling) {
+            if (hasClass(row, "testResultRow") && row.repObject) {
+                text += (hasClass(row, "testError") ? failLabel : passLabel); 
+                text += ": " + row.repObject.msg;
+                text += ", " + row.repObject.fileName + "\n";
+            }
+        }
+
+        var summary = getElementByClass(tbody, "testResultSummaryRow");
+        if (summary) {
+            summary = summary.firstChild;
+            text += summary.childNodes[0].textContent + ", " +
+                summary.childNodes[1].textContent;
+        }
+
+        copyToClipboard(text);
     },
 });
 
@@ -960,7 +1068,7 @@ Firebug.FireUnitModule.ParseErrorRep = domplate(Firebug.Rep,
  */
 Firebug.FireUnitModule.TestResult = function(win, pass, msg, expected, result)
 {
-    var location = win.wrappedJSObject.location.href;
+    var location = win.location.href;
     this.fileName = location.substr(location.lastIndexOf("/") + 1);
 
     this.pass = pass ? true : false;
@@ -980,6 +1088,136 @@ Firebug.FireUnitModule.TestResult = function(win, pass, msg, expected, result)
         this.stack.push({fileName:fileName, lineNumber:lineNumber});
     }
 }
+
+// Privileges
+//-----------------------------------------------------------------------------
+
+/**
+ * Manage preferences for page privileges.
+ */
+Firebug.FireUnitModule.Privilege = 
+{
+    prefDomain: "capability.principal.codebase.",
+    privileges: "UniversalPreferencesWrite UniversalXPConnect UniversalBrowserWrite " +
+        "UniversalPreferencesRead UniversalBrowserRead",
+    rePref: /p[0-9]+.id/,
+
+    enable: function()
+    {
+        if (FBTrace.DBG_FIREUNIT)
+            FBTrace.sysout("fireunit.Privilege.enable");
+
+        // This must be set so, the other prefs works.
+        Firebug.setPref("signed.applets", "codebase_principal_support", true);
+
+        // See bug: #425880
+        Firebug.setPref("security.fileuri", "strict_origin_policy", false);
+
+        this.enablePrivilegeForUri("http://localhost:7080");
+        this.enablePrivilegeForUri("file://");
+    },
+
+    disable: function()
+    {
+        if (FBTrace.DBG_FIREUNIT)
+            FBTrace.sysout("fireunit.Privilege.disable");
+
+        prefs.clearUserPref("signed.applets.codebase_principal_support");
+        prefs.clearUserPref("security.fileuri.strict_origin_policy");
+
+        this.disablePrivilegeForUri("http://localhost:7080");
+        this.disablePrivilegeForUri("file://");
+    },
+
+    toggle: function()
+    {
+        if (this.isEnabled())
+            this.disable();
+        else
+            this.enable();
+    },
+
+    isEnabled: function()
+    {
+        if (!Firebug.getPref("signed.applets", "codebase_principal_support"))
+            return false;
+
+        if (Firebug.getPref("security.fileuri", "strict_origin_policy"))
+            return false;
+
+        if (!this.isEnabledForUri("http://localhost:7080"))
+            return false;
+
+        if (!this.isEnabledForUri("file://"))
+            return false;
+
+        return true;
+    },
+
+    enablePrivilegeForUri: function(uri)
+    {
+        for (var i=0; true; i++)
+        {
+            try {
+                var url = prefs.getCharPref(this.prefDomain + "p" + i + ".id");
+                if (url == uri)
+                    break;
+            }
+            catch (err) {
+                prefs.setCharPref(this.prefDomain + "p" + i + ".granted", "UniversalXPConnect");
+                prefs.setCharPref(this.prefDomain + "p" + i + ".id", uri);
+                prefs.setCharPref(this.prefDomain + "p" + i + ".subjectName", "");
+                break;
+            }
+        }
+    },
+
+    disablePrivilegeForUri: function(uri)
+    {
+        var arrayDesc = {};
+        var branch = PrefService.getBranch(this.prefDomain);
+        var children = branch.getChildList("", arrayDesc);
+        for (var i = 0; i < children.length; i++) 
+        {
+            var p = children[i];
+            var m = this.rePref.exec(p);
+            if (!m)
+                continue;
+
+            var url = branch.getCharPref(p);
+            if (url != uri)
+                continue;
+
+            var parts = p.split(".");
+            var prefNames = [".id", ".granted", ".subjectName"];
+            for (var a in prefNames) {
+                try {
+                    branch.clearUserPref(parts[0] + prefNames[a]);
+                } 
+                catch (err) {
+                }
+            }
+        }
+    },
+
+    isEnabledForUri: function(uri)
+    {
+        for (var i=0; true; i++)
+        {
+            try {
+                var url = prefs.getCharPref(this.prefDomain + "p" + i + ".id");
+                if (url == uri) {
+                    if (prefs.getCharPref(this.prefDomain + "p" + i + ".granted"))
+                        return true;
+                }
+            }
+            catch (err) {
+                break;
+            }
+        }
+        return false;
+    }
+};
 
 // Utils
 //-----------------------------------------------------------------------------

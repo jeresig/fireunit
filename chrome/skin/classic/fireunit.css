@@ -12,6 +12,7 @@
 
 .testResultRow {
     background: white;
+    height:17px;
 }
 
 .testResultRow:hover {
@@ -40,12 +41,7 @@
     background-repeat: no-repeat;
     background-position: 2px 2px;
     padding-left: 18px;
-}
-
-.testResultMessage:hover {
-    cursor: pointer;
-    color: blue;
-    text-decoration: underline;
+    position: absolute;
 }
 
 .testError .testResultMessage,
@@ -58,6 +54,32 @@
 .testResultFileName {
     color: Gray;
     margin-right: 7px;
+    text-align: right;
+}
+
+/************************************************************************************************/
+
+/* Moving mouse over the result-message shows entire text */
+.testResultMessage:hover {
+    cursor: pointer;
+    color: blue;
+    text-decoration: underline;
+}
+
+.testResultFullMessage {
+    display: none;
+    -moz-user-select: none;
+    max-width: 100%;
+    background: #EFEFEF;
+    padding-left: 18px;
+    position: absolute;
+    background-image: url(chrome://firebug/skin/win/twistyClosed.png);
+    background-repeat: no-repeat;
+    background-position: 2px 2px;
+}
+
+.testResultCol:hover > .testResultFullMessage {
+    display: block;
 }
 
 /************************************************************************************************/
@@ -107,7 +129,7 @@
 
 /************************************************************************************************/
 
-/* Cusomt styles for tabView bodies */
+/* Custom styles for tabView bodies */
 .tabStackBody,
 .tabCompareBody {
     padding: 5px 0 5px 10px;
