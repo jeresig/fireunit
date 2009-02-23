@@ -5,7 +5,7 @@
 
   <Description about="urn:mozilla:install-manifest">
     <em:id>fireunit@mozilla.com</em:id>
-    <em:version>0.9</em:version>
+    <em:version>1.0a1</em:version>
    
     <!-- Firefox -->
     <em:targetApplication>
