@@ -415,10 +415,13 @@ FBL.ns(function() { with (FBL) {
             profile: function( fn ) {
                 win.console.profile();
                 win.__profile = fn;
-                try { win.__profile(); } catch(e){}
-                win.console.profileEnd();
-                delete win.__profile;
-                return this.getProfile();
+                try {
+                    win.__profile();
+                } finally {
+                    win.console.profileEnd();
+                    delete win.__profile;
+                    return this.getProfile();
+                }
             },
             
             /*
