@@ -381,44 +381,45 @@ FBL.ns(function() { with (FBL) {
                 return document.getElementById( id );
             },
 
-                        getProfile: function() {
-                            var ret = { time: 0, calls: 0, data: [] };
-                            var table = context.getPanel("console").panelNode
-                                .getElementsByClassName("profileSizer")[0].parentNode.parentNode;
+            getProfile: function() {
+                var ret = { time: 0, calls: 0, data: [] };
+                var table = context.getPanel("console").panelNode
+                    .getElementsByClassName("profileSizer");
+		            table = table[table.length - 1].parentNode.parentNode;
 
-                            var time = table.getElementsByClassName("profileTime")[0].textContent
-                                .match(/([\d.]+)ms, (\d+) call/);
+                var time = table.getElementsByClassName("profileTime")[0].textContent
+                    .match(/([\d.]+)ms, (\d+) call/);
 
-                            ret.time = parseFloat(time[1]);
-                            ret.calls = parseFloat(time[2]);
+                ret.time = parseFloat(time[1]);
+                ret.calls = parseFloat(time[2]);
 
-                            var rows = table.getElementsByTagName("tr");
-                            for ( var i = 1; i < rows.length; i++ ) {
-                                var row = rows[i];
-                                ret.data.push({
-                                    name: row.childNodes[0].textContent,
-                                    calls: parseFloat(row.childNodes[1].textContent),
-                                    percent: parseFloat(row.childNodes[2].textContent),
-                                    ownTime: parseFloat(row.childNodes[3].textContent),
-                                    time: parseFloat(row.childNodes[4].textContent),
-                                    avgTime: parseFloat(row.childNodes[5].textContent),
-                                    minTime: parseFloat(row.childNodes[6].textContent),
-                                    maxTime: parseFloat(row.childNodes[7].textContent),
-                                    fileName: row.childNodes[8].textContent
-                                });
-                            }
+                var rows = table.getElementsByTagName("tr");
+                for ( var i = 1; i < rows.length; i++ ) {
+                    var row = rows[i];
+                    ret.data.push({
+                        name: row.childNodes[0].textContent,
+                        calls: parseFloat(row.childNodes[1].textContent),
+                        percent: parseFloat(row.childNodes[2].textContent),
+                        ownTime: parseFloat(row.childNodes[3].textContent),
+                        time: parseFloat(row.childNodes[4].textContent),
+                        avgTime: parseFloat(row.childNodes[5].textContent),
+                        minTime: parseFloat(row.childNodes[6].textContent),
+                        maxTime: parseFloat(row.childNodes[7].textContent),
+                        fileName: row.childNodes[8].textContent
+                    });
+                }
 
-                            return ret;
-                        },
+                return ret;
+            },
 
-                        profile: function( fn ) {
-                            win.console.profile();
-                            win.__profile = fn;
-                            win.__profile();
-                            win.console.profileEnd();
-                            delete win.__profile;
-                            return this.getProfile();
-                        },
+            profile: function( fn ) {
+                win.console.profile();
+                win.__profile = fn;
+                try { win.__profile(); } catch(e){}
+                win.console.profileEnd();
+                delete win.__profile;
+                return this.getProfile();
+            },
             
             /*
              * Tests that a condition is true and outputs the results.
