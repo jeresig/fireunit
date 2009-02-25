@@ -94,6 +94,10 @@
     display: table-row !important;
 }
 
+.testTable.showLog .testResultRow.testLog {
+    display: table-row !important;
+}
+
 .testTable.showPass .testResultRow.testOK {
     display: table-row !important;
 }
@@ -121,6 +125,11 @@
 
 .testResultSummaryLabel {
     padding-left: 18px;
+}
+
+.testResultRow.testLog
+{
+    color: Blue;
 }
 
 .summaryPass.testResultSummaryLabel {
