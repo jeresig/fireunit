@@ -4,7 +4,7 @@
      xmlns:em="http://www.mozilla.org/2004/em-rdf#">
 
   <Description about="urn:mozilla:install-manifest">
-    <em:id>fireunit@mozilla.com</em:id>
+    <em:id>nczonline@nczonline.net</em:id>
     <em:version>1.0a1</em:version>
    
     <!-- Firefox -->

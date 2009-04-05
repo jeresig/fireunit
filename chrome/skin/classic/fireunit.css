@@ -205,3 +205,35 @@
 .DBG_FIREUNIT {
     color: rgb(255, 165, 0);
 }
+
+/************************************************************************************************/
+
+/* Support for Grouping */ 
+
+.testGroupStart {
+    background: white;
+    height:17px;
+    cursor: pointer;
+}
+
+.testGroupStart:hover {
+    background-color: #EFEFEF;
+}
+
+.testGroupStart .testGroupName {
+    background-image: url(chrome://firebug/skin/win/twistyClosed.png);
+    background-repeat: no-repeat;
+    background-position: 2px 2px; 
+    font-weight: bold;
+    padding-left: 18px;
+    border-bottom: 1px solid #EFEFEF;
+}
+
+.opened > .testGroupName {
+    background-image: url(chrome://firebug/skin/win/twistyOpen.png);
+}
+
+.testGroupContainer {
+    padding-left: 15px;
+
+}

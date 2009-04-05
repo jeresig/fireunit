@@ -458,6 +458,23 @@ FBL.ns(function() { with (FBL) {
             },
             
             /*
+             * Creates a group in the Fireunit console with the given name.
+             * @param {String} name The name of the group (displayed in the console).
+             */
+            group: function(name){
+                var panel = context.getPanel(panelName);
+                panel.appendGroup(name);
+            },
+            
+            /*
+             * Closes the currently open group.
+             */
+            groupEnd: function(){
+                var panel = context.getPanel(panelName);
+                panel.removeGroup();
+            },
+            
+            /*
              * Compares two strings to see if they are the same. If they are,
              * then the test passes, otherwise it fails.
              * @param {String} expected The expected text.
@@ -739,7 +756,7 @@ FBL.ns(function() { with (FBL) {
         appendResults: function(queueResults)
         {
             // Append new test results.
-            var tbody = this.table.firstChild;
+            var tbody = this.getTableBase();
             var row = Firebug.FireUnitModule.TestResultRep.resultTag.insertRows(
                 {results: queueResults}, tbody.lastChild ? tbody.lastChild : tbody)[0];
     
@@ -753,14 +770,62 @@ FBL.ns(function() { with (FBL) {
     
             scrollToBottom(this.panelNode);
         },
+   
+        /*
+         * Retrieves the base of the table upon which new rows should be added.
+         * This is necessary for grouping.
+         * @param {Boolean} reset Resets the table base to the default, emptying
+         *      all groups.
+         * @return {HTMLTBodyElement} The table's tbody element.
+         */
+        getTableBase: function(reset){
+            if (reset){
+                this.groups = [];
+            }
+            
+            if (this.groups && this.groups.length){
+                return this.groups[this.groups.length-1];
+            } else {
+                return this.table.firstChild;
+            }
+
+        },
+        
+        /*
+         * Creates a new group entry in the Fireunit console.
+         * @param {String} name The name of the group to display.
+         */
+        appendGroup: function(name){
+            var tbody = this.getTableBase();
+            Firebug.FireUnitModule.TestResultRep.groupStartTag.insertRows(
+                {name: name}, tbody.lastChild ? tbody.lastChild : tbody)[0];     
+            var row = Firebug.FireUnitModule.TestResultRep.groupContainerTag.insertRows(
+                {}, tbody.lastChild ? tbody.lastChild : tbody)[0]; 
+            if (!this.groups){
+                this.groups = [];
+            }
+            this.groups.push(row.getElementsByTagName("tbody")[0]);
+            scrollToBottom(this.panelNode);
+        },
+        
+        /*
+         * Removes the last group entry from the Fireunit console.
+         */
+        removeGroup: function(){
+            if (this.groups && this.groups.length){
+                this.groups.pop();
+            }
+        },
     
         appendSummary: function()
         {
-            var tbody = this.table.firstChild;
+            var tbody = this.getTableBase(true);
     
             // Count number of passing and failing tests.
             var summary = { passing: 0, failing: 0 };
-            for (var row = tbody.firstChild; row; row = row.nextSibling) {
+            var rows = tbody.getElementsByTagName("tr");
+            for (var i=0, len=rows.length; i < len; i++) {
+                var row = rows[i];
                 if (hasClass(row, "testResultRow"))
                     hasClass(row, "testError") ? summary.failing++ : hasClass(row, "testOK") ? summary.passing++ : true;
             }
@@ -786,11 +851,13 @@ FBL.ns(function() { with (FBL) {
      */
     Firebug.FireUnitModule.TestResultRep = domplate(Firebug.Rep,
     {
+        //overall table representing the Fireunit console
         tableTag:
             TABLE({"class": "testTable", cellpadding: 0, cellspacing: 0, onclick: "$onClick"},
                 TBODY()
             ),
     
+        //loops over results and outputs a row for each
         resultTag:
             FOR("result", "$results",
                 TR({"class": "testResultRow", _repObject: "$result",
@@ -812,13 +879,31 @@ FBL.ns(function() { with (FBL) {
                     )
                 )
             ),
+            
+        //displays header for group
+        groupStartTag:
+            TR({"class": "testGroupStart opened"},
+                TD({"class": "testGroupName", "colspan":2}, "$name")
+            ),
+            
+        //container for group contents
+        groupContainerTag:
+            TR({},
+                TD({"class": "testGroupContainer", "colspan":2}, 
+                    TABLE({"class": "testTable", cellpadding: 0, cellspacing: 0},
+                        TBODY()
+                    )                    
+                )
+            ),
     
+        //the details of a test (area where tabs are shown)
         resultInfoTag:
             TR({"class": "testResultInfoRow", _repObject: "$result", 
                 $testError: "$result|isError"},
                 TD({"class": "testResultInfoCol", colspan: 2})
             ),
     
+        //displays the summary of results at the end of testing
         summaryTag:
             TR({"class": "testResultSummaryRow testResultRow"},
                 TD({"class": "testResultCol", colspan: 2},
@@ -871,6 +956,13 @@ FBL.ns(function() { with (FBL) {
                     this.toggleResultRow(row);
                     cancelEvent(event);
                 }
+                
+                //check for groups
+                row = getAncestorByClass(event.target, "testGroupStart");
+                if(row){
+                    this.toggleGroupRow(row);
+                    cancelEvent(event);
+                }
             }
         },
     
@@ -892,6 +984,22 @@ FBL.ns(function() { with (FBL) {
                 row.parentNode.removeChild(infoBodyRow);
             }
         },
+        
+        /*
+         * Shows or hides group information.
+         * @param {HTMLTableRowElement} row The row representing the group start.
+         */
+        toggleGroupRow: function(row){
+            toggleClass(row, "opened");
+            if (hasClass(row, "opened"))
+            {
+                row.nextSibling.style.display = "";
+            }
+            else
+            {
+                row.nextSibling.style.display = "none";
+            }        
+        },        
     
         initInfoBody: function(infoBodyRow)
         {
