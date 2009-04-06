@@ -463,7 +463,7 @@ FBL.ns(function() { with (FBL) {
              */
             group: function(name){
                 var panel = context.getPanel(panelName);
-                panel.appendGroup(name);
+                panel.appendGroup(name, win.location.href.substr(win.location.href.lastIndexOf("/") + 1));
             },
             
             /*
@@ -794,11 +794,13 @@ FBL.ns(function() { with (FBL) {
         /*
          * Creates a new group entry in the Fireunit console.
          * @param {String} name The name of the group to display.
+         * @param {String} fileName The name of the file in which the group is
+         *      located.
          */
-        appendGroup: function(name){
+        appendGroup: function(name, fileName){
             var tbody = this.getTableBase();
             Firebug.FireUnitModule.TestResultRep.groupStartTag.insertRows(
-                {name: name}, tbody.lastChild ? tbody.lastChild : tbody)[0];     
+                {name: name, fileName: fileName}, tbody.lastChild ? tbody.lastChild : tbody)[0];     
             var row = Firebug.FireUnitModule.TestResultRep.groupContainerTag.insertRows(
                 {}, tbody.lastChild ? tbody.lastChild : tbody)[0]; 
             if (!this.groups){
@@ -883,7 +885,14 @@ FBL.ns(function() { with (FBL) {
         //displays header for group
         groupStartTag:
             TR({"class": "testGroupStart opened"},
-                TD({"class": "testGroupName", "colspan":2}, "$name")
+                TD({"class":"testResultCol", width: "100%"}, 
+                    DIV({"class": "testGroupName"}, "$name")
+                ),
+                TD({"class": "testResultCol"},
+                    DIV({"class": "testResultFileName testResultLabel"},
+                        "$fileName"
+                    )
+                )
             ),
             
         //container for group contents

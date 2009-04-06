@@ -208,12 +208,12 @@
 
 /************************************************************************************************/
 
-/* Support for Grouping */ 
+/* Styles for grouping of results */ 
 
 .testGroupStart {
     background: white;
     height:17px;
-    cursor: pointer;
+    border-bottom: 1px solid #EFEFEF;
 }
 
 .testGroupStart:hover {
@@ -226,10 +226,17 @@
     background-position: 2px 2px; 
     font-weight: bold;
     padding-left: 18px;
-    border-bottom: 1px solid #EFEFEF;
+    cursor: pointer;
+    position: absolute;
+    -moz-user-select: none;
 }
 
-.opened > .testGroupName {
+.testGroupStart .testGroupName:hover {
+    color: blue;
+    text-decoration: underline;
+}
+
+.opened > .testResultCol > .testGroupName {
     background-image: url(chrome://firebug/skin/win/twistyOpen.png);
 }
 
