@@ -450,6 +450,20 @@ FBL.ns(function() { with (FBL) {
                 panel.appendResults([result]);
               }
             },
+
+            /*
+             * Inserts a log message
+             * @param {String} msg The message to display.
+             */
+            log: function( msg ) {
+              var result = new Firebug.FireUnitModule.TestResult(win, undefined, msg, undefined, undefined, true);
+              if ( testQueue ) {
+                queueResults.push(result);
+              } else {
+                var panel = context.getPanel(panelName);
+                panel.appendResults([result]);
+              }
+            },
             
             /*
              * Compares two strings to see if they are the same. If they are,
@@ -675,7 +689,7 @@ FBL.ns(function() { with (FBL) {
             if (FBTrace.DBG_FIREUNIT)
                 FBTrace.sysout("fireunit.FireUnitPanel.updateOption: " + name + ": " + value);
     
-            if (name == "fireunit.showPass" || name == "fireunit.showFail")
+            if (name == "fireunit.showPass" || name == "fireunit.showFail" || name == "fireunit.showLog" )
                 this.updatePanelFilter();
         },
     
@@ -683,6 +697,7 @@ FBL.ns(function() { with (FBL) {
         {
             var showPass = Firebug.getPref(Firebug.prefDomain, "fireunit.showPass");
             var showFail = Firebug.getPref(Firebug.prefDomain, "fireunit.showFail");
+            var showLog = Firebug.getPref(Firebug.prefDomain, "fireunit.showLog");
     
             // Update styles on the root table (contains the list of results).
             // These styles ensure proper visibility of pass and fail tests according 
@@ -691,6 +706,7 @@ FBL.ns(function() { with (FBL) {
             var table = getElementByClass(panelNode, "testTable");
             showPass ? setClass(table, "showPass") : removeClass(table, "showPass");
             showFail ? setClass(table, "showFail") : removeClass(table, "showFail");
+            showLog ? setClass(table, "showLog") : removeClass(table, "showLog");
         },
     
         getOptionsMenuItems: function(context)
@@ -698,6 +714,7 @@ FBL.ns(function() { with (FBL) {
             var items = [];
             items.push(this.optionMenu($FU_STR("fireunit.option.Passing Tests"), "fireunit.showPass"));
             items.push(this.optionMenu($FU_STR("fireunit.option.Failing Tests"), "fireunit.showFail"));
+            items.push(this.optionMenu($FU_STR("fireunit.option.Log"), "fireunit.showLog"));
             items.push("-");
             items.push({
                 label: $FU_STR("fireunit.option.Enable Privileges"),
@@ -752,7 +769,7 @@ FBL.ns(function() { with (FBL) {
             var summary = { passing: 0, failing: 0 };
             for (var row = tbody.firstChild; row; row = row.nextSibling) {
                 if (hasClass(row, "testResultRow"))
-                    hasClass(row, "testError") ? summary.failing++ : summary.passing++;
+                    hasClass(row, "testError") ? summary.failing++ : hasClass(row, "testOK") ? summary.passing++ : true;
             }
     
             // Append summary row.
@@ -785,7 +802,8 @@ FBL.ns(function() { with (FBL) {
             FOR("result", "$results",
                 TR({"class": "testResultRow", _repObject: "$result",
                     $testError: "$result|isError",
-                    $testOK: "$result|isOK"},
+                    $testOK: "$result|isOK",
+                    $testLog: "$result|isLog"},
                     TD({"class": "testResultCol", width: "100%"},
                         DIV({"class": "testResultMessage testResultLabel"},
                             "$result|getMessage"
@@ -831,13 +849,18 @@ FBL.ns(function() { with (FBL) {
         },
     
         isError: function(result)
-        {
-            return !result.pass;
+        {   // result.log takes precedence
+            return !result.log && !result.pass;
         },
     
         isOK: function(result)
+        {   // result.log takes precedence
+            return !result.log && result.pass;
+        },
+        
+        isLog: function(result)
         {
-            return result.pass;
+            return result.log;
         },
     
         summaryPassed: function(summary)
@@ -1274,12 +1297,14 @@ FBL.ns(function() { with (FBL) {
     /**
      * This object represents a test-result.
      */
-    Firebug.FireUnitModule.TestResult = function(win, pass, msg, expected, result)
+    Firebug.FireUnitModule.TestResult = function(win, pass, msg, expected, result, log)
     {
         var location = win.location.href;
         this.fileName = location.substr(location.lastIndexOf("/") + 1);
     
-        this.pass = pass ? true : false;
+        this.pass = pass;
+        this.log = log;
+        
         this.msg = clean(msg);
         this.expected = expected;
         this.result = result;
