@@ -385,10 +385,18 @@ FBL.ns(function() { with (FBL) {
                 var ret = { time: 0, calls: 0, data: [] };
                 var table = context.getPanel("console").panelNode
                     .getElementsByClassName("profileSizer");
-		            table = table[table.length - 1].parentNode.parentNode;
+
+                if ( !table.length ) {
+                    if ( win.console ) {
+                        win.console.error("Firebug Script panel must be enabled in order for FireUnit profiling to work.");
+                    }
+                    return null;
+                }
+
+                table = table[table.length - 1].parentNode.parentNode;
 
                 var time = table.getElementsByClassName("profileTime")[0].textContent
-                    .match(/([\d.]+)ms, (\d+) call/);
+                    .match(/([\d.]+)\D+(\d+)/);
 
                 ret.time = parseFloat(time[1]);
                 ret.calls = parseFloat(time[2]);
